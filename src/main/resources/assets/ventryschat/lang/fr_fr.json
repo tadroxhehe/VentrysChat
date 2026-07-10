@@ -1,0 +1,8 @@
+{
+  "mod.ventryschat.name": "Ventrys Chat RP",
+  "mod.ventryschat.description": "Système de chat RP avancé avec gestion des noms et narration immersive",
+  "block.ventryschat.narration_text_block": "TEXTE HRP",
+  "item.ventryschat.narration_text_block": "TEXTE HRP",
+  "block.ventryschat.warp_portal_block": "Portail warp",
+  "item.ventryschat.warp_portal_block": "Portail warp"
+}

@@ -1,0 +1,39 @@
+# Configuration du mod VentrysChat
+# Fichier de métadonnées pour Forge
+
+modLoader="javafml"
+loaderVersion="[40.2,)"
+license="All Rights Reserved"
+
+[[mods]]
+modId="ventryschat"
+version="2.2.1"
+displayName="VentrysChat - Chat RP"
+authors="Ventrys"
+description='''
+🎭 VentrysChat - Mod de Chat RP pour Minecraft
+
+Transforme le chat Minecraft en un système de rôle-play immersif avec :
+• Préfixes RP spéciaux (£, *, [hrp, /narration, £ch, £cri, £hurle)
+• Système de distance réaliste (4 à 500 blocs)
+• Gestion des noms RP avec synchronisation
+• Chat bloqué pour encourager le RP
+• Couleurs non flashy et élégantes
+• Support multijoueur complet
+
+Parfait pour les serveurs RP et les joueurs qui veulent une expérience immersive !
+'''
+
+[[dependencies.ventryschat]]
+modId="forge"
+mandatory=true
+versionRange="[40.2,)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.ventryschat]]
+modId="minecraft"
+mandatory=true
+versionRange="[1.18.2,1.19)"
+ordering="NONE"
+side="BOTH"

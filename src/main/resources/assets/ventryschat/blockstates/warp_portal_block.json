@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "ventryschat:block/warp_portal_block"
+    }
+  }
+}

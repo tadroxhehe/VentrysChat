@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=north": { "model": "ventryschat:block/narration_text_block" },
+    "facing=south": { "model": "ventryschat:block/narration_text_block", "y": 180 },
+    "facing=west": { "model": "ventryschat:block/narration_text_block", "y": 270 },
+    "facing=east": { "model": "ventryschat:block/narration_text_block", "y": 90 }
+  }
+}

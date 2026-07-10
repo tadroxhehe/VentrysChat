@@ -1,0 +1,276 @@
+LISTE COMPLETE DES COMMANDES - SYSTEME D'APTITUDES
+=====================================================
+
+APERÇU DU SYSTÈME
+------------------
+
+Le système d'aptitudes permet aux joueurs de développer 3 types d'aptitudes :
+- Martialité : 0 à 10 points
+- Artisanat : 0 à 10 points  
+- Savoir : 0 à 10 points
+
+Limites importantes :
+- Maximum 15 points totaux répartis sur les 3 aptitudes
+- Maximum 10 points par aptitude individuelle
+- Les points à répartir n'ont pas de limite
+
+
+COMMANDES POUR LES JOUEURS
+===========================
+
+/setfocus <type>
+----------------
+Définit votre focus d'aptitude. Le focus détermine où ira automatiquement le point lors d'un give global.
+
+Types disponibles :
+- martialité (ou martialite, martial)
+- artisanat (ou artisan)
+- savoir (ou sav)
+
+Exemples :
+/setfocus martialité
+/setfocus artisanat
+/setfocus savoir
+
+Important :
+- Changer de focus active un cooldown de 14 jours
+- Pendant le cooldown, vos connexions ne comptent pas pour l'éligibilité au give global
+- Le cooldown est affiché dans /aptitudes
+
+
+/aptitudes
+---------
+Affiche vos propres aptitudes, points à répartir, focus actuel et statut du cooldown.
+
+Informations affichées :
+- Points dans chaque aptitude (Martialité, Artisanat, Savoir)
+- Total réparti / 15
+- Points à répartir disponibles
+- Focus actuel
+- Statut du cooldown (si actif)
+- Dernière connexion éligible
+
+Exemple :
+/aptitudes
+
+
+/aptitudes me
+-------------
+Même chose que /aptitudes, affiche vos propres aptitudes.
+
+Exemple :
+/aptitudes me
+
+
+COMMANDES ADMINISTRATEUR
+========================
+
+/giveaptitudeinitiale <joueur>
+-------------------------------
+Donne les 5 points à répartir initiaux à un nouveau joueur. Cette commande ne peut être utilisée qu'une seule fois par joueur.
+
+Exemples :
+/giveaptitudeinitiale PlayerName
+/giveaptitudeinitiale Notch
+
+Fonctionnement :
+- Donne 5 points à répartir au joueur
+- Marque le joueur comme ayant reçu ses points initiaux
+- Le joueur devra utiliser /giveaptitude pour répartir ces points
+
+Messages :
+- Staff : Confirmation de l'attribution
+- Joueur : Notification qu'il a reçu 5 points à répartir
+
+
+/giveaptitude <joueur> <type> <nombre>
+---------------------------------------
+Donne des points directement dans une aptitude spécifique. Consomme automatiquement les points à répartir du joueur si disponibles.
+
+Paramètres :
+- joueur : Nom du joueur cible
+- type : Type d'aptitude (martialité, artisanat, ou savoir)
+- nombre : Nombre de points à donner (1 minimum)
+
+Exemples :
+/giveaptitude PlayerName martialité 3
+/giveaptitude Notch artisanat 5
+/giveaptitude Steve savoir 2
+
+Fonctionnement :
+- Si le joueur a des points à répartir supérieurs ou égaux au nombre demandé : consomme les points à répartir et ajoute les points à l'aptitude
+- Si le joueur n'a pas assez de points à répartir : ajoute directement les points à l'aptitude (le staff peut bypasser)
+- Vérifie automatiquement les limites (15 points totaux max, 10 par aptitude)
+
+Messages :
+- Staff : Confirmation avec nombre de points à répartir consommés
+- Joueur : Notification qu'il a reçu les points
+
+Erreurs possibles :
+- Limite d'aptitude atteinte (10 points max)
+- Limite totale atteinte (15 points totaux max)
+
+
+/giveaptitudeglobal
+--------------------
+Donne 1 point directement dans le focus de tous les joueurs éligibles. Cette commande est utilisée toutes les 2 semaines (1 dimanche sur 2).
+
+Exemple :
+/giveaptitudeglobal
+
+Fonctionnement :
+- Parcourt tous les joueurs avec des données d'aptitudes
+- Vérifie l'éligibilité de chaque joueur :
+  * Avoir un focus défini
+  * S'être connecté au moins 1 fois entre les 2 derniers give globaux
+  * Ne pas être en cooldown (14 jours après changement de focus)
+  * Ne pas avoir déjà 10 points dans son focus
+  * Ne pas avoir déjà 15 points totaux répartis
+- Donne 1 point directement dans le focus de chaque joueur éligible
+- Enregistre la date du give global dans l'historique
+
+Messages :
+- Staff : Résumé avec nombre de joueurs ayant reçu le point
+- Logs : Détails dans les logs du serveur
+
+Important :
+- Cette commande doit être exécutée manuellement par le staff
+- Aucune prévision automatique n'est affichée
+- Le staff gère le planning des give globaux
+
+
+/aptitudes <joueur>
+-------------------
+Affiche les aptitudes d'un autre joueur.
+
+Exemples :
+/aptitudes PlayerName
+/aptitudes Notch
+
+Informations affichées :
+- Points dans chaque aptitude du joueur cible
+- Total réparti / 15
+- Points à répartir disponibles
+- Focus actuel
+- Statut du cooldown (si actif)
+
+
+/aptitudeseligibles
+--------------------
+Liste tous les joueurs éligibles pour le prochain give global.
+
+Exemple :
+/aptitudeseligibles
+
+Informations affichées :
+- Liste des joueurs éligibles avec leur focus actuel
+- Nombre total de joueurs éligibles
+
+Utilisation :
+- Permet au staff de vérifier qui recevra le point avant d'exécuter /giveaptitudeglobal
+- Utile pour diagnostiquer les problèmes d'éligibilité
+
+Critères d'éligibilité affichés :
+- Joueur avec focus défini
+- Connexion éligible enregistrée
+- Pas de cooldown actif
+- Limites non atteintes
+
+
+/aptitudeshistorique
+---------------------
+Affiche l'historique des give globaux effectués.
+
+Exemple :
+/aptitudeshistorique
+
+Informations affichées :
+- Date du dernier give global (ou "Jamais" si aucun)
+- Nombre total de give globaux effectués
+
+Utilisation :
+- Permet au staff de vérifier quand a eu lieu le dernier give global
+- Utile pour suivre l'historique des distributions
+
+
+/resetaptitudes <joueur>
+-------------------------
+Réinitialise complètement toutes les aptitudes d'un joueur.
+
+Exemple :
+/resetaptitudes PlayerName
+
+Fonctionnement :
+- Remet à 0 toutes les aptitudes (Martialité, Artisanat, Savoir)
+- Supprime tous les points à répartir
+- Supprime le focus
+- Supprime le cooldown
+- Remet les points initiaux à "non donnés"
+
+Messages :
+- Staff : Confirmation de la réinitialisation
+- Joueur : Notification que ses aptitudes ont été réinitialisées
+
+Attention :
+- Cette action est irréversible
+- Utiliser uniquement en cas de nécessité absolue
+
+
+RESUME DES LIMITES ET REGLES
+=============================
+
+Limites :
+- 15 points totaux maximum répartis sur les 3 aptitudes
+- 10 points maximum par aptitude individuelle
+- Points à répartir : pas de limite
+
+Cooldown :
+- 14 jours après changement de focus
+- Pendant le cooldown, les connexions ne comptent pas pour l'éligibilité au give global
+- Le cooldown est affiché dans /aptitudes
+
+Éligibilité au Give Global :
+Pour être éligible, un joueur doit :
+1. Avoir un focus défini (/setfocus)
+2. S'être connecté au moins 1 fois entre les 2 derniers give globaux
+3. Ne pas être en cooldown (14 jours après changement de focus)
+4. Ne pas avoir déjà 10 points dans son focus
+5. Ne pas avoir déjà 15 points totaux répartis
+
+Points Initiaux :
+- 5 points à répartir donnés par le staff via /giveaptitudeinitiale
+- Ne peuvent être donnés qu'une seule fois par joueur
+- Le joueur doit utiliser /giveaptitude (staff) pour les répartir
+
+Give Global :
+- Effectué toutes les 2 semaines (1 dimanche sur 2)
+- Donne 1 point directement dans le focus de chaque joueur éligible
+- Géré manuellement par le staff via /giveaptitudeglobal
+
+
+WORKFLOW TYPIQUE
+================
+
+Pour un nouveau joueur :
+1. Staff : /giveaptitudeinitiale <joueur> → Donne 5 points à répartir
+2. Joueur : /setfocus <type> → Définit son focus
+3. Staff : /giveaptitude <joueur> <type> <nombre> → Répartit les points (consomme les points à répartir)
+
+Pour un give global :
+1. Staff : /aptitudeseligibles → Vérifie qui est éligible
+2. Staff : /giveaptitudeglobal → Donne 1 point à tous les éligibles
+3. Staff : /aptitudeshistorique → Vérifie l'historique
+
+
+NOTES IMPORTANTES
+=================
+
+- Toutes les données sont sauvegardées automatiquement toutes les 30 minutes
+- Les fichiers de sauvegarde sont dans le dossier du serveur :
+  * ventryschat_rp_data.json (toutes les données RP et aptitudes des joueurs)
+  * ventryschat_aptitudes_history.json (historique des give globaux)
+
+
+Version du système : 1.0
+Dernière mise à jour : 2025
+

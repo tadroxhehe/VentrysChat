@@ -1,0 +1,22 @@
+# Référence — la config runtime est générée par Forge :
+#   config/ventryschat-server.toml
+# Modifiez ce fichier sur le serveur (pas celui-ci dans le JAR).
+
+[general]
+enabled = true
+
+[chat]
+default_distance = 15
+whisper_distance = 4
+shout_distance = 30
+scream_distance = 60
+action_distance = 15
+chuchot_distance = 2
+default_narration_distance = 100
+min_narration_distance = 10
+max_narration_distance = 1000
+
+[names]
+auto_save_interval_minutes = 30
+save_on_logout = true
+save_on_server_stop = true
