@@ -1,7 +1,6 @@
 package com.example.ventryschat.commands;
 
 import com.example.ventryschat.compat.VentrysPermsBridge;
-import com.example.ventryschat.registry.ModMenuTypes;
 import com.example.ventryschat.staff.*;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.DoubleArgumentType;
@@ -20,7 +19,6 @@ import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraft.world.inventory.ChestMenu;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.network.NetworkHooks;
 import org.slf4j.Logger;
@@ -241,7 +239,7 @@ public final class StaffUtilityCommands {
 
                                 @Override
                                 public AbstractContainerMenu createMenu(int syncId, Inventory inv, Player player) {
-                                    return new ChestMenu(ModMenuTypes.INVSEE.get(), syncId, inv, new InvSeeContainer(target), 5);
+                                    return new InvSeeMenu(syncId, inv, new InvSeeContainer(target));
                                 }
                             }, buf -> buf.writeUUID(target.getUUID()));
                             return 1;

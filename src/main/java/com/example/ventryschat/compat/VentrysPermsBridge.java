@@ -35,6 +35,8 @@ public final class VentrysPermsBridge {
             try {
                 return (boolean) CAN.invoke(null, source, permissionId);
             } catch (ReflectiveOperationException ignored) {
+                // Mod perms présent mais API en échec : ne pas élargir à OP.
+                return false;
             }
         }
         return source.hasPermission(2);

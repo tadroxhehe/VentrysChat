@@ -23,12 +23,37 @@ public final class RPAutoSaveScheduler {
     // Executor d'I/O dedie : les flush disque ne bloquent plus le thread serveur principal.
     // saveData() est synchronized et playerData est un ConcurrentHashMap (deja lu hors-thread par
     // le thread d'autosave), donc l'ecriture en arriere-plan est sure.
-    private static final java.util.concurrent.ExecutorService DISK_IO =
-        java.util.concurrent.Executors.newSingleThreadExecutor(r -> {
+    // Recree apres chaque stop() : shutdown() rend l'executor inutilisable.
+    private static volatile java.util.concurrent.ExecutorService diskIoExecutor = newDiskIoExecutor();
+
+    private static java.util.concurrent.ExecutorService newDiskIoExecutor() {
+        return java.util.concurrent.Executors.newSingleThreadExecutor(r -> {
             Thread t = new Thread(r, "VentrysChat-RPDiskFlush");
             t.setDaemon(true);
             return t;
         });
+    }
+
+    private static java.util.concurrent.ExecutorService ensureDiskIoExecutor() {
+        java.util.concurrent.ExecutorService executor = diskIoExecutor;
+        if (executor == null || executor.isShutdown()) {
+            synchronized (RPAutoSaveScheduler.class) {
+                executor = diskIoExecutor;
+                if (executor == null || executor.isShutdown()) {
+                    diskIoExecutor = executor = newDiskIoExecutor();
+                }
+            }
+        }
+        return executor;
+    }
+
+    private static void executeDiskIo(Runnable task, Runnable fallbackOnRejection) {
+        try {
+            ensureDiskIoExecutor().execute(task);
+        } catch (java.util.concurrent.RejectedExecutionException e) {
+            fallbackOnRejection.run();
+        }
+    }
 
     public interface SaveHooks {
         boolean saveData();
@@ -58,13 +83,14 @@ public final class RPAutoSaveScheduler {
         if (!COALESCED_DISK_FLUSH_PENDING.compareAndSet(false, true)) {
             return;
         }
-        DISK_IO.execute(() -> {
+        Runnable flushTask = () -> {
             try {
                 hooks.saveDataAndAptitudes();
             } finally {
                 COALESCED_DISK_FLUSH_PENDING.set(false);
             }
-        });
+        };
+        executeDiskIo(flushTask, flushTask);
     }
 
     public static void scheduleThrottledDiskSaveIfNeeded(MinecraftServer server, SaveHooks hooks, Logger logger) {
@@ -78,7 +104,7 @@ public final class RPAutoSaveScheduler {
         if (!THROTTLED_SAVE_RUNNABLE_QUEUED.compareAndSet(false, true)) {
             return;
         }
-        DISK_IO.execute(() -> {
+        Runnable saveTask = () -> {
             try {
                 if (shouldPerformImmediateSave(hooks)) {
                     if (hooks.saveData()) {
@@ -89,7 +115,8 @@ public final class RPAutoSaveScheduler {
             } finally {
                 THROTTLED_SAVE_RUNNABLE_QUEUED.set(false);
             }
-        });
+        };
+        executeDiskIo(saveTask, saveTask);
     }
 
     public static void start(SaveHooks hooks, Logger logger) {
@@ -98,6 +125,7 @@ public final class RPAutoSaveScheduler {
             return;
         }
 
+        ensureDiskIoExecutor();
         autoSaveEnabled = true;
         autoSaveThread = new Thread(() -> {
             ChatLog.detail(logger, "Sauvegarde automatique démarrée (intervalle: {} min)",
@@ -138,14 +166,21 @@ public final class RPAutoSaveScheduler {
         if (autoSaveThread != null && autoSaveThread.isAlive()) {
             autoSaveThread.interrupt();
         }
-        DISK_IO.shutdown();
-        try {
-            if (!DISK_IO.awaitTermination(10, java.util.concurrent.TimeUnit.SECONDS)) {
-                DISK_IO.shutdownNow();
+        java.util.concurrent.ExecutorService executor;
+        synchronized (RPAutoSaveScheduler.class) {
+            executor = diskIoExecutor;
+            diskIoExecutor = null;
+        }
+        if (executor != null) {
+            executor.shutdown();
+            try {
+                if (!executor.awaitTermination(10, java.util.concurrent.TimeUnit.SECONDS)) {
+                    executor.shutdownNow();
+                }
+            } catch (InterruptedException e) {
+                executor.shutdownNow();
+                Thread.currentThread().interrupt();
             }
-        } catch (InterruptedException e) {
-            DISK_IO.shutdownNow();
-            Thread.currentThread().interrupt();
         }
         ChatLog.diagnose(logger, "Arrêt de la sauvegarde automatique");
     }
