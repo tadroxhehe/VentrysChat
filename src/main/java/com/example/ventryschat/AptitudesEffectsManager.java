@@ -38,6 +38,11 @@ public class AptitudesEffectsManager {
 
         removeLegacyPotionEffects(player);
 
+        if (com.example.ventryschat.compat.DirectionalCombatBridge.suppressLegacyMartialiteBonuses()) {
+            updateAttackSpeedModifier(player, 0);
+            return;
+        }
+
         RPDataManager.PlayerRPData data = RPDataManager.getPlayerData(player.getUUID());
         int martialite = data != null ? data.martialite : 0;
         updateAttackSpeedModifier(player, martialite);

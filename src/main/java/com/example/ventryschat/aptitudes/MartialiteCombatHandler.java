@@ -1,6 +1,7 @@
 package com.example.ventryschat.aptitudes;
 
 import com.example.ventryschat.RPDataManager;
+import com.example.ventryschat.compat.DirectionalCombatBridge;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.player.Player;
@@ -22,6 +23,9 @@ public final class MartialiteCombatHandler {
 
     @SubscribeEvent(priority = EventPriority.HIGH)
     public static void onLivingDamageHigh(LivingDamageEvent event) {
+        if (DirectionalCombatBridge.suppressLegacyMartialiteBonuses()) {
+            return;
+        }
         if (event.getEntity().level.isClientSide) {
             return;
         }
@@ -51,6 +55,9 @@ public final class MartialiteCombatHandler {
 
     @SubscribeEvent(priority = EventPriority.LOW)
     public static void onLivingDamageLow(LivingDamageEvent event) {
+        if (DirectionalCombatBridge.suppressLegacyMartialiteBonuses()) {
+            return;
+        }
         if (event.getEntity().level.isClientSide) {
             return;
         }

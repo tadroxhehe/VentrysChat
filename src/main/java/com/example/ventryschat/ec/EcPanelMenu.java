@@ -1,6 +1,5 @@
 package com.example.ventryschat.ec;
 
-import com.example.ventryschat.compat.VentrysPermsBridge;
 import com.example.ventryschat.registry.ModMenuTypes;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Container;
@@ -12,11 +11,16 @@ import net.minecraft.world.item.ItemStack;
 
 public final class EcPanelMenu extends AbstractContainerMenu {
 
-    private static final String PERM = "ventryspermissions.staff.ec";
     private static final int ROWS = 1;
+    private final String panelKey;
 
     public EcPanelMenu(int containerId, Inventory playerInventory, Container container) {
+        this(containerId, playerInventory, container, "");
+    }
+
+    public EcPanelMenu(int containerId, Inventory playerInventory, Container container, String panelKey) {
         super(ModMenuTypes.EC_PANEL.get(), containerId);
+        this.panelKey = panelKey == null ? "" : panelKey;
         checkContainerSize(container, ROWS * 9);
         container.startOpen(playerInventory.player);
         for (int col = 0; col < 9; col++) {
@@ -37,10 +41,10 @@ public final class EcPanelMenu extends AbstractContainerMenu {
     public void clicked(int slotId, int button, ClickType clickType, Player player) {
         if (player instanceof ServerPlayer sp && slotId >= 0 && slotId < ROWS * 9) {
             ItemStack stack = getSlot(slotId).getItem();
-            String panelKey = EcDisplay.panelKey(stack);
+            String key = EcDisplay.panelKey(stack);
             int ecIndex = EcDisplay.ecIndex(stack);
-            if (panelKey != null && ecIndex >= 0) {
-                EcMenuOpener.openStorage(sp, panelKey, ecIndex);
+            if (key != null && ecIndex >= 0) {
+                EcMenuOpener.openStorage(sp, key, ecIndex);
                 return;
             }
             return;
@@ -53,6 +57,14 @@ public final class EcPanelMenu extends AbstractContainerMenu {
         if (player.level.isClientSide) {
             return true;
         }
-        return player instanceof ServerPlayer sp && VentrysPermsBridge.player(sp, PERM);
+        if (!(player instanceof ServerPlayer sp) || !EcAccess.canUseEc(sp)) {
+            return false;
+        }
+        if (panelKey.isEmpty()) {
+            return true;
+        }
+        return EcSavedData.get(sp.getLevel()).getPanel(panelKey)
+                .map(panel -> EcAccess.canAccess(sp, panel))
+                .orElse(false);
     }
 }

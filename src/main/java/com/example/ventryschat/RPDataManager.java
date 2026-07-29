@@ -303,6 +303,27 @@ public class RPDataManager {
     }
     
     /**
+     * Recherche un joueur par nom RP complet (prénom + nom), insensible à la casse / espaces.
+     * Exemple : {@code "Aegon Blackfyre"}.
+     */
+    public static java.util.Optional<UUID> findUuidByFullName(String query) {
+        if (query == null || query.isBlank()) {
+            return java.util.Optional.empty();
+        }
+        String normalized = query.trim().replaceAll("\\s+", " ").toLowerCase(java.util.Locale.ROOT);
+        for (java.util.Map.Entry<UUID, PlayerRPData> entry : playerData.entrySet()) {
+            String full = getFullName(entry.getKey());
+            if (full.isEmpty()) {
+                continue;
+            }
+            if (full.trim().replaceAll("\\s+", " ").toLowerCase(java.util.Locale.ROOT).equals(normalized)) {
+                return java.util.Optional.of(entry.getKey());
+            }
+        }
+        return java.util.Optional.empty();
+    }
+
+    /**
      * Obtient le nom RP complet d'un joueur
      * Amélioré avec validation null-safe
      */

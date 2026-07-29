@@ -304,44 +304,78 @@ final class RPCommandHandlers {
         }
     }
 
-    static int executeSetBirthDate(ServerPlayer player, String birthDate) {
+    static int executeSetBirthDateOther(ServerPlayer executor, String targetPlayerName, String birthDate) {
         try {
-            RPDataManager.setBirthDate(player.getUUID(), birthDate);
-            player.sendMessage(new TextComponent("§a§l✅ Date de naissance RP définie : §e" + birthDate), player.getUUID());
-            ChatLog.detail(LOGGER,"Joueur {} a défini sa date de naissance RP : {}", player.getName().getString(), birthDate);
+            var server = executor.getServer();
+            if (server == null) {
+                executor.sendMessage(new TextComponent("§c❌ Erreur : serveur non disponible"), executor.getUUID());
+                return 0;
+            }
+
+            ServerPlayer targetPlayer = server.getPlayerList().getPlayerByName(targetPlayerName);
+            if (targetPlayer == null) {
+                executor.sendMessage(new TextComponent("§c❌ Joueur non trouvé : §e" + targetPlayerName), executor.getUUID());
+                return 0;
+            }
+
+            RPDataManager.setBirthDate(targetPlayer.getUUID(), birthDate);
+            executor.sendMessage(new TextComponent("§a§l✅ Date de naissance RP de §e" + targetPlayerName + "§a : §e" + birthDate), executor.getUUID());
+            targetPlayer.sendMessage(new TextComponent("§a§l✅ Votre date de naissance RP a été définie : §e" + birthDate), targetPlayer.getUUID());
+            ChatLog.detail(LOGGER, "Joueur {} a défini la date de naissance RP de {} : {}", executor.getName().getString(), targetPlayerName, birthDate);
 
             try {
-                RPDataManager.saveAndSyncPlayer(player.getUUID());
+                RPDataManager.saveAndSyncPlayer(targetPlayer.getUUID());
             } catch (Exception e) {
                 LOGGER.warn("Erreur lors de la synchronisation, mais la date a été sauvegardée", e);
             }
 
             return 1;
         } catch (Exception e) {
-            player.sendMessage(new TextComponent("§c❌ Erreur lors de la définition de la date de naissance RP"), player.getUUID());
-            LOGGER.error("Erreur lors de la définition de la date de naissance RP pour {}", player.getName().getString(), e);
+            executor.sendMessage(new TextComponent("§c❌ Erreur lors de la définition de la date de naissance RP"), executor.getUUID());
+            LOGGER.error("Erreur lors de la définition de la date de naissance RP de {} par {}", targetPlayerName, executor.getName().getString(), e);
             return 0;
         }
     }
 
-    static int executeSetJob(ServerPlayer player, String lorejob) {
+    static int executeSetJobOther(ServerPlayer executor, String targetPlayerName, String lorejob) {
         try {
-            RPDataManager.setLorejob(player.getUUID(), lorejob);
-            player.sendMessage(new TextComponent("§a§l✅ Lorejob RP défini : §e" + lorejob), player.getUUID());
-            ChatLog.detail(LOGGER,"Joueur {} a défini son lorejob RP : {}", player.getName().getString(), lorejob);
+            var server = executor.getServer();
+            if (server == null) {
+                executor.sendMessage(new TextComponent("§c❌ Erreur : serveur non disponible"), executor.getUUID());
+                return 0;
+            }
+
+            ServerPlayer targetPlayer = server.getPlayerList().getPlayerByName(targetPlayerName);
+            if (targetPlayer == null) {
+                executor.sendMessage(new TextComponent("§c❌ Joueur non trouvé : §e" + targetPlayerName), executor.getUUID());
+                return 0;
+            }
+
+            RPDataManager.setLorejob(targetPlayer.getUUID(), lorejob);
+            executor.sendMessage(new TextComponent("§a§l✅ Lorejob RP de §e" + targetPlayerName + "§a : §e" + lorejob), executor.getUUID());
+            targetPlayer.sendMessage(new TextComponent("§a§l✅ Votre métier lore a été défini : §e" + lorejob), targetPlayer.getUUID());
+            ChatLog.detail(LOGGER, "Joueur {} a défini le lorejob RP de {} : {}", executor.getName().getString(), targetPlayerName, lorejob);
 
             try {
-                RPDataManager.saveAndSyncPlayer(player.getUUID());
+                RPDataManager.saveAndSyncPlayer(targetPlayer.getUUID());
             } catch (Exception e) {
                 LOGGER.warn("Erreur lors de la synchronisation, mais le lorejob a été sauvegardé", e);
             }
 
             return 1;
         } catch (Exception e) {
-            player.sendMessage(new TextComponent("§c❌ Erreur lors de la définition du lorejob RP"), player.getUUID());
-            LOGGER.error("Erreur lors de la définition du lorejob RP pour {}", player.getName().getString(), e);
+            executor.sendMessage(new TextComponent("§c❌ Erreur lors de la définition du lorejob RP"), executor.getUUID());
+            LOGGER.error("Erreur lors de la définition du lorejob RP de {} par {}", targetPlayerName, executor.getName().getString(), e);
             return 0;
         }
+    }
+
+    static int executeSetBirthDate(ServerPlayer player, String birthDate) {
+        return executeSetBirthDateOther(player, player.getName().getString(), birthDate);
+    }
+
+    static int executeSetJob(ServerPlayer player, String lorejob) {
+        return executeSetJobOther(player, player.getName().getString(), lorejob);
     }
 
     static int executeGivePrestige(ServerPlayer executor, String targetPlayerName, String title, String description) {
@@ -461,9 +495,8 @@ final class RPCommandHandlers {
             sendMessage.accept("§a/setname <prénom> §7- Définir votre prénom RP");
             sendMessage.accept("§a/setsurname <nom> §7- Définir votre nom RP");
             sendMessage.accept("§a/rpstatus §7- Afficher votre statut RP complet");
-            sendMessage.accept("§a/setbirthdate <date> §7- Définir votre date de naissance RP");
-            sendMessage.accept("§a/lorejob <métier> §7- Définir votre métier RP");
             sendMessage.accept("§a/rpprofile §7- Ouvrir votre fiche RP");
+            sendMessage.accept("§7Date de naissance / métier lore : définis par le staff à l'intégration");
             sendMessage.accept("§a/nrp <joueur> <couleur> <texte> §7- Envoyer une narration RP ciblée");
             sendMessage.accept("§7  Couleurs: white, yellow, green, blue, purple, red, orange, gray");
             sendMessage.accept("§7  Exemple: /nrp PlayerName red Vous entendez un bruit étrange");

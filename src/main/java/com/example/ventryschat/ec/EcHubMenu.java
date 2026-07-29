@@ -1,6 +1,5 @@
 package com.example.ventryschat.ec;
 
-import com.example.ventryschat.compat.VentrysPermsBridge;
 import com.example.ventryschat.registry.ModMenuTypes;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Container;
@@ -11,8 +10,6 @@ import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.item.ItemStack;
 
 public final class EcHubMenu extends AbstractContainerMenu {
-
-    private static final String PERM = "ventryspermissions.staff.ec";
 
     private final Container container;
     private final int containerRows;
@@ -79,7 +76,7 @@ public final class EcHubMenu extends AbstractContainerMenu {
         if (player.level.isClientSide) {
             return true;
         }
-        return player instanceof ServerPlayer sp && VentrysPermsBridge.player(sp, PERM);
+        return player instanceof ServerPlayer sp && EcAccess.canUseEc(sp);
     }
 
     @Override

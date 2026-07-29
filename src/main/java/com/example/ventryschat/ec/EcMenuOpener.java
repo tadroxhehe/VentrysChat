@@ -1,7 +1,6 @@
 package com.example.ventryschat.ec;
 
 import com.example.ventryschat.registry.ModMenuTypes;
-import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.TextComponent;
 import net.minecraft.server.level.ServerLevel;
@@ -14,6 +13,8 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ChestMenu;
 import net.minecraftforge.network.NetworkHooks;
 
+import java.util.List;
+
 public final class EcMenuOpener {
 
     private EcMenuOpener() {
@@ -22,21 +23,29 @@ public final class EcMenuOpener {
     public static void openHub(ServerPlayer player) {
         ServerLevel level = player.getLevel();
         EcSavedData data = EcSavedData.get(level);
-        int count = data.panelCount();
+        List<EcSavedData.Panel> visible = data.visiblePanelsFor(player);
+        int count = visible.size();
         int rows = Math.max(1, Math.min(6, (count + 8) / 9));
         SimpleContainer display = new SimpleContainer(rows * 9);
         int slot = 0;
-        for (EcSavedData.Panel panel : data.allPanels()) {
+        boolean audit = EcAccess.canAccessOthers(player);
+        for (EcSavedData.Panel panel : visible) {
             if (slot >= display.getContainerSize()) {
                 break;
             }
-            display.setItem(slot++, EcDisplay.panelIcon(panel.displayName, panel.key));
+            String label = panel.displayName;
+            if (audit && panel.ownerId != null && !panel.ownerId.equals(player.getUUID())) {
+                label = panel.displayName + " §8(autre)";
+            } else if (audit && panel.ownerId == null) {
+                label = panel.displayName + " §8(legacy)";
+            }
+            display.setItem(slot++, EcDisplay.panelIcon(label, panel.key));
         }
         final int finalRows = rows;
         NetworkHooks.openGui(player, new MenuProvider() {
             @Override
             public Component getDisplayName() {
-                return new TextComponent("Panneaux EC");
+                return new TextComponent(audit ? "Panneaux EC (audit)" : "Mes panneaux EC");
             }
 
             @Override
@@ -54,6 +63,10 @@ public final class EcMenuOpener {
             player.sendMessage(new TextComponent("§cPanneau EC introuvable."), player.getUUID());
             return;
         }
+        if (!EcAccess.canAccess(player, panel)) {
+            player.sendMessage(new TextComponent("§cCe panneau EC ne vous appartient pas."), player.getUUID());
+            return;
+        }
         SimpleContainer display = new SimpleContainer(9);
         for (int i = 0; i < EcSavedData.EC_COUNT; i++) {
             display.setItem(i, EcDisplay.ecSlotIcon(panel.displayName, panel.key, i));
@@ -66,7 +79,7 @@ public final class EcMenuOpener {
 
             @Override
             public AbstractContainerMenu createMenu(int syncId, Inventory inv, Player p) {
-                return new EcPanelMenu(syncId, inv, display);
+                return new EcPanelMenu(syncId, inv, display, panel.key);
             }
         }, buf -> buf.writeUtf(panel.key));
     }
@@ -77,6 +90,10 @@ public final class EcMenuOpener {
         EcSavedData.Panel panel = data.getPanel(panelKey).orElse(null);
         if (panel == null || ecIndex < 0 || ecIndex >= EcSavedData.EC_COUNT) {
             player.sendMessage(new TextComponent("§cCoffre EC introuvable."), player.getUUID());
+            return;
+        }
+        if (!EcAccess.canAccess(player, panel)) {
+            player.sendMessage(new TextComponent("§cCe panneau EC ne vous appartient pas."), player.getUUID());
             return;
         }
         EcStorageContainer storage = new EcStorageContainer(data, panel.key, ecIndex);

@@ -30,23 +30,43 @@ public class AptitudesCommands {
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.FRENCH);
     
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
-        // Commande /setfocus pour définir le focus
+        // /setfocus <type> — tous (soi)
+        // /setfocus <joueur> <type> — staff (rp.setfocus)
         dispatcher.register(Commands.literal("setfocus")
-            .then(Commands.argument("type", StringArgumentType.word())
+            .requires(source -> source.hasPermission(0))
+            .then(Commands.argument("cible_ou_type", StringArgumentType.word())
                 .suggests((context, builder) -> suggestFocusTypes(builder))
                 .executes(context -> {
-                    String focusType = StringArgumentType.getString(context, "type");
+                    String arg = StringArgumentType.getString(context, "cible_ou_type");
                     CommandSourceStack source = context.getSource();
-                    
-                    if (source.getEntity() instanceof ServerPlayer player) {
-                        return executeSetFocus(player, focusType);
-                    } else {
+                    if (!(source.getEntity() instanceof ServerPlayer player)) {
                         source.sendFailure(new TextComponent("Cette commande ne peut être utilisée que par un joueur !"));
                         return 0;
                     }
-                }))
+                    String focus = normalizeFocusType(arg);
+                    if (focus == null) {
+                        source.sendFailure(new TextComponent(
+                                "Usage: /setfocus <martialité|artisanat|savoir>"));
+                        return 0;
+                    }
+                    return executeSetFocusSelf(player, focus);
+                })
+                .then(Commands.argument("type", StringArgumentType.word())
+                    .requires(source -> VentrysPermsBridge.staff(source, "ventryspermissions.rp.setfocus"))
+                    .suggests((context, builder) -> suggestFocusTypes(builder))
+                    .executes(context -> {
+                        String targetPlayerName = StringArgumentType.getString(context, "cible_ou_type");
+                        String focusType = StringArgumentType.getString(context, "type");
+                        CommandSourceStack source = context.getSource();
+                        if (source.getEntity() instanceof ServerPlayer executor) {
+                            return executeSetFocusOther(executor, targetPlayerName, focusType);
+                        }
+                        source.sendFailure(new TextComponent("Cette commande ne peut être utilisée que par un joueur !"));
+                        return 0;
+                    })))
             .executes(context -> {
-                context.getSource().sendFailure(new TextComponent("Usage: /setfocus <martialité|artisanat|savoir>"));
+                context.getSource().sendFailure(new TextComponent(
+                        "Usage: /setfocus <martialité|artisanat|savoir>"));
                 return 0;
             }));
         
@@ -195,43 +215,83 @@ public class AptitudesCommands {
     }
     
     /**
-     * Exécute la commande /setfocus
+     * Exécute /setfocus <type> (joueur sur soi).
      */
-    private static int executeSetFocus(ServerPlayer player, String focusType) {
+    private static int executeSetFocusSelf(ServerPlayer player, String normalizedFocus) {
         try {
-            // Valider le type de focus
-            String normalizedFocus = normalizeFocusType(focusType);
-            if (normalizedFocus == null) {
-                player.sendMessage(new TextComponent("§c❌ Type de focus invalide. Utilisez : martialité, artisanat ou savoir"), player.getUUID());
-                return 0;
-            }
-            
-            UUID playerUUID = player.getUUID();
-            RPDataManager.PlayerRPData data = AptitudesManager.getOrCreateAptitudesData(playerUUID);
-            
-            // Vérifier si le focus change vraiment
+            UUID uuid = player.getUUID();
+            RPDataManager.PlayerRPData data = AptitudesManager.getOrCreateAptitudesData(uuid);
             String ancienFocus = data.focus;
             if (normalizedFocus.equals(ancienFocus)) {
-                player.sendMessage(new TextComponent("§e⚠️ Votre focus est déjà défini sur : §6" + normalizedFocus), player.getUUID());
+                player.sendMessage(new TextComponent("§e⚠️ Votre focus est déjà : §6" + normalizedFocus), player.getUUID());
                 return 0;
             }
-            
-            // Changer le focus (active le cooldown de 14 jours)
-            AptitudesManager.changerFocus(playerUUID, normalizedFocus);
-            
-            // Message de confirmation
+
+            AptitudesManager.changerFocus(uuid, normalizedFocus);
+
             if (ancienFocus == null || ancienFocus.isEmpty()) {
                 player.sendMessage(new TextComponent("§a§l✅ Focus défini : §e" + normalizedFocus), player.getUUID());
             } else {
-                player.sendMessage(new TextComponent("§a§l✅ Focus changé de §e" + ancienFocus + "§a vers §e" + normalizedFocus), player.getUUID());
+                player.sendMessage(new TextComponent("§a§l✅ Focus changé : §e" + ancienFocus + "§a → §e" + normalizedFocus), player.getUUID());
                 player.sendMessage(new TextComponent("§c⚠️ Cooldown de 14 jours activé. Vos connexions ne compteront pas pour l'éligibilité au give global pendant cette période."), player.getUUID());
             }
-            
-            ChatLog.detail(LOGGER,"Focus défini pour {} : {}", player.getName().getString(), normalizedFocus);
+
+            ChatLog.detail(LOGGER, "Focus de {} (soi) : {}", player.getName().getString(), normalizedFocus);
             return 1;
         } catch (Exception e) {
             player.sendMessage(new TextComponent("§c❌ Erreur lors de la définition du focus"), player.getUUID());
-            LOGGER.error("Erreur lors de la définition du focus pour {}", player.getName().getString(), e);
+            LOGGER.error("Erreur /setfocus soi pour {}", player.getName().getString(), e);
+            return 0;
+        }
+    }
+
+    /**
+     * Exécute /setfocus <joueur> <type> (staff).
+     */
+    private static int executeSetFocusOther(ServerPlayer executor, String targetPlayerName, String focusType) {
+        try {
+            var server = executor.getServer();
+            if (server == null) {
+                executor.sendMessage(new TextComponent("§c❌ Erreur : serveur non disponible"), executor.getUUID());
+                return 0;
+            }
+
+            ServerPlayer targetPlayer = server.getPlayerList().getPlayerByName(targetPlayerName);
+            if (targetPlayer == null) {
+                executor.sendMessage(new TextComponent("§c❌ Joueur non trouvé : §e" + targetPlayerName), executor.getUUID());
+                return 0;
+            }
+
+            String normalizedFocus = normalizeFocusType(focusType);
+            if (normalizedFocus == null) {
+                executor.sendMessage(new TextComponent("§c❌ Type de focus invalide. Utilisez : martialité, artisanat ou savoir"), executor.getUUID());
+                return 0;
+            }
+
+            UUID targetUUID = targetPlayer.getUUID();
+            RPDataManager.PlayerRPData data = AptitudesManager.getOrCreateAptitudesData(targetUUID);
+            String ancienFocus = data.focus;
+            if (normalizedFocus.equals(ancienFocus)) {
+                executor.sendMessage(new TextComponent("§e⚠️ Le focus de §6" + targetPlayerName + "§e est déjà : §6" + normalizedFocus), executor.getUUID());
+                return 0;
+            }
+
+            AptitudesManager.changerFocus(targetUUID, normalizedFocus);
+
+            if (ancienFocus == null || ancienFocus.isEmpty()) {
+                executor.sendMessage(new TextComponent("§a§l✅ Focus de §e" + targetPlayerName + "§a défini : §e" + normalizedFocus), executor.getUUID());
+                targetPlayer.sendMessage(new TextComponent("§a§l✅ Votre focus a été défini : §e" + normalizedFocus), targetPlayer.getUUID());
+            } else {
+                executor.sendMessage(new TextComponent("§a§l✅ Focus de §e" + targetPlayerName + "§a : §e" + ancienFocus + "§a → §e" + normalizedFocus), executor.getUUID());
+                targetPlayer.sendMessage(new TextComponent("§a§l✅ Votre focus a été changé : §e" + ancienFocus + "§a → §e" + normalizedFocus), targetPlayer.getUUID());
+                targetPlayer.sendMessage(new TextComponent("§c⚠️ Cooldown de 14 jours activé. Vos connexions ne compteront pas pour l'éligibilité au give global pendant cette période."), targetPlayer.getUUID());
+            }
+
+            ChatLog.detail(LOGGER, "Focus de {} défini par {} : {}", targetPlayerName, executor.getName().getString(), normalizedFocus);
+            return 1;
+        } catch (Exception e) {
+            executor.sendMessage(new TextComponent("§c❌ Erreur lors de la définition du focus"), executor.getUUID());
+            LOGGER.error("Erreur lors de la définition du focus de {} par {}", targetPlayerName, executor.getName().getString(), e);
             return 0;
         }
     }

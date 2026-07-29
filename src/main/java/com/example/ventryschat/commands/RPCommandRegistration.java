@@ -176,40 +176,46 @@ final class RPCommandRegistration {
             }));
 
         dispatcher.register(Commands.literal("setbirthdate")
-            .requires(source -> source.hasPermission(0))
-            .then(Commands.argument("date", StringArgumentType.greedyString())
-                .executes(context -> {
-                    String birthDate = StringArgumentType.getString(context, "date");
-                    CommandSourceStack source = context.getSource();
+            .requires(source -> VentrysPermsBridge.staff(source, "ventryspermissions.rp.setbirthdate"))
+            .then(Commands.argument("joueur", StringArgumentType.word())
+                .suggests((context, builder) -> RPCommandSuggestions.suggestOnlinePlayers(context.getSource(), builder))
+                .then(Commands.argument("date", StringArgumentType.greedyString())
+                    .executes(context -> {
+                        String targetPlayer = StringArgumentType.getString(context, "joueur");
+                        String birthDate = StringArgumentType.getString(context, "date");
+                        CommandSourceStack source = context.getSource();
 
-                    if (source.getEntity() instanceof ServerPlayer player) {
-                        return RPCommandHandlers.executeSetBirthDate(player, birthDate);
-                    } else {
-                        source.sendFailure(new TextComponent("Cette commande ne peut être utilisée que par un joueur !"));
-                        return 0;
-                    }
-                }))
+                        if (source.getEntity() instanceof ServerPlayer player) {
+                            return RPCommandHandlers.executeSetBirthDateOther(player, targetPlayer, birthDate);
+                        } else {
+                            source.sendFailure(new TextComponent("Cette commande ne peut être utilisée que par un joueur !"));
+                            return 0;
+                        }
+                    })))
             .executes(context -> {
-                context.getSource().sendFailure(new TextComponent("Usage: /setbirthdate <date>"));
+                context.getSource().sendFailure(new TextComponent("Usage: /setbirthdate <joueur> <date>"));
                 return 0;
             }));
 
         dispatcher.register(Commands.literal("lorejob")
-            .requires(source -> source.hasPermission(0))
-            .then(Commands.argument("métier", StringArgumentType.greedyString())
-                .executes(context -> {
-                    String job = StringArgumentType.getString(context, "métier");
-                    CommandSourceStack source = context.getSource();
+            .requires(source -> VentrysPermsBridge.staff(source, "ventryspermissions.rp.lorejob"))
+            .then(Commands.argument("joueur", StringArgumentType.word())
+                .suggests((context, builder) -> RPCommandSuggestions.suggestOnlinePlayers(context.getSource(), builder))
+                .then(Commands.argument("métier", StringArgumentType.greedyString())
+                    .executes(context -> {
+                        String targetPlayer = StringArgumentType.getString(context, "joueur");
+                        String job = StringArgumentType.getString(context, "métier");
+                        CommandSourceStack source = context.getSource();
 
-                    if (source.getEntity() instanceof ServerPlayer player) {
-                        return RPCommandHandlers.executeSetJob(player, job);
-                    } else {
-                        source.sendFailure(new TextComponent("Cette commande ne peut être utilisée que par un joueur !"));
-                        return 0;
-                    }
-                }))
+                        if (source.getEntity() instanceof ServerPlayer player) {
+                            return RPCommandHandlers.executeSetJobOther(player, targetPlayer, job);
+                        } else {
+                            source.sendFailure(new TextComponent("Cette commande ne peut être utilisée que par un joueur !"));
+                            return 0;
+                        }
+                    })))
             .executes(context -> {
-                context.getSource().sendFailure(new TextComponent("Usage: /lorejob <métier>"));
+                context.getSource().sendFailure(new TextComponent("Usage: /lorejob <joueur> <métier>"));
                 return 0;
             }));
 

@@ -1,14 +1,11 @@
 package com.example.ventryschat.ec;
 
-import com.example.ventryschat.compat.VentrysPermsBridge;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 
 public final class EcStorageContainer extends SimpleContainer {
-
-    private static final String PERM = "ventryspermissions.staff.ec";
 
     private final EcSavedData data;
     private final String panelKey;
@@ -38,6 +35,11 @@ public final class EcStorageContainer extends SimpleContainer {
         if (player.level.isClientSide) {
             return true;
         }
-        return player instanceof ServerPlayer sp && VentrysPermsBridge.player(sp, PERM);
+        if (!(player instanceof ServerPlayer sp) || !EcAccess.canUseEc(sp)) {
+            return false;
+        }
+        return data.getPanel(panelKey)
+                .map(panel -> EcAccess.canAccess(sp, panel))
+                .orElse(false);
     }
 }

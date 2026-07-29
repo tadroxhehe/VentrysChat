@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 public final class EcSavedData extends SavedData {
 
@@ -20,16 +21,21 @@ public final class EcSavedData extends SavedData {
     public static final int SLOTS_PER_EC = 27;
     /** Plafond anti-abus (création staff). */
     public static final int MAX_PANELS = 64;
+    /** Max de panneaux par propriétaire (hors legacy / audit). */
+    public static final int MAX_PANELS_PER_OWNER = 8;
     private static final String DATA_NAME = "ventryschat_ec_panels";
 
     public static final class Panel {
         public final String key;
         public final String displayName;
+        /** {@code null} = panneau legacy sans propriétaire (accès audit only). */
+        public final UUID ownerId;
         public final ItemStack[][] storages = new ItemStack[EC_COUNT][SLOTS_PER_EC];
 
-        public Panel(String key, String displayName) {
+        public Panel(String key, String displayName, UUID ownerId) {
             this.key = key;
             this.displayName = displayName;
+            this.ownerId = ownerId;
             for (int ec = 0; ec < EC_COUNT; ec++) {
                 for (int slot = 0; slot < SLOTS_PER_EC; slot++) {
                     storages[ec][slot] = ItemStack.EMPTY;
@@ -54,7 +60,11 @@ public final class EcSavedData extends SavedData {
             if (displayName.isEmpty()) {
                 displayName = key;
             }
-            Panel panel = new Panel(key, displayName);
+            UUID ownerId = null;
+            if (panelTag.hasUUID("Owner")) {
+                ownerId = panelTag.getUUID("Owner");
+            }
+            Panel panel = new Panel(key, displayName, ownerId);
             ListTag ecList = panelTag.getList("Storages", Tag.TAG_COMPOUND);
             for (int ec = 0; ec < Math.min(EC_COUNT, ecList.size()); ec++) {
                 CompoundTag ecTag = ecList.getCompound(ec);
@@ -79,6 +89,9 @@ public final class EcSavedData extends SavedData {
             CompoundTag panelTag = new CompoundTag();
             panelTag.putString("Key", panel.key);
             panelTag.putString("DisplayName", panel.displayName);
+            if (panel.ownerId != null) {
+                panelTag.putUUID("Owner", panel.ownerId);
+            }
             ListTag ecList = new ListTag();
             for (int ec = 0; ec < EC_COUNT; ec++) {
                 CompoundTag ecTag = new CompoundTag();
@@ -106,14 +119,30 @@ public final class EcSavedData extends SavedData {
         return name.trim().toLowerCase(Locale.ROOT);
     }
 
-    public boolean createPanel(String rawName) {
+    public boolean createPanel(String rawName, UUID ownerId) {
         String key = normalizeKey(rawName);
         if (key.isEmpty() || panels.containsKey(key) || panels.size() >= MAX_PANELS) {
             return false;
         }
-        panels.put(key, new Panel(key, rawName.trim()));
+        if (ownerId != null && countOwnedBy(ownerId) >= MAX_PANELS_PER_OWNER) {
+            return false;
+        }
+        panels.put(key, new Panel(key, rawName.trim(), ownerId));
         setDirty();
         return true;
+    }
+
+    public int countOwnedBy(UUID ownerId) {
+        if (ownerId == null) {
+            return 0;
+        }
+        int n = 0;
+        for (Panel panel : panels.values()) {
+            if (ownerId.equals(panel.ownerId)) {
+                n++;
+            }
+        }
+        return n;
     }
 
     public Optional<Panel> getPanel(String rawName) {
@@ -122,6 +151,17 @@ public final class EcSavedData extends SavedData {
 
     public List<Panel> allPanels() {
         return new ArrayList<>(panels.values());
+    }
+
+    /** Panneaux visibles pour ce joueur (les siens, ou tous si audit {@code staff.ec.other}). */
+    public List<Panel> visiblePanelsFor(net.minecraft.server.level.ServerPlayer player) {
+        List<Panel> out = new ArrayList<>();
+        for (Panel panel : panels.values()) {
+            if (EcAccess.canAccess(player, panel)) {
+                out.add(panel);
+            }
+        }
+        return out;
     }
 
     public int panelCount() {
