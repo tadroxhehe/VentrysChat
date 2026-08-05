@@ -27,7 +27,9 @@ import org.jetbrains.annotations.Nullable;
 
 public class NarrationTextBlock extends BaseEntityBlock {
     private static final DirectionProperty FACING = BlockStateProperties.HORIZONTAL_FACING;
-    private static final VoxelShape SHAPE = Shapes.box(0.125D, 0.2D, 0.45D, 0.875D, 0.85D, 0.55D);
+    /** Plaque fine N/S — doit suivre {@link #FACING} sinon le clic rate le texte (E/O). */
+    private static final VoxelShape SHAPE_NS = Shapes.box(0.05D, 0.15D, 0.40D, 0.95D, 0.90D, 0.60D);
+    private static final VoxelShape SHAPE_EW = Shapes.box(0.40D, 0.15D, 0.05D, 0.60D, 0.90D, 0.95D);
 
     public NarrationTextBlock(Properties properties) {
         super(properties);
@@ -41,7 +43,22 @@ public class NarrationTextBlock extends BaseEntityBlock {
 
     @Override
     public VoxelShape getShape(BlockState pState, BlockGetter pLevel, BlockPos pPos, CollisionContext pContext) {
-        return SHAPE;
+        return shapeFor(pState);
+    }
+
+    @Override
+    public VoxelShape getCollisionShape(BlockState pState, BlockGetter pLevel, BlockPos pPos, CollisionContext pContext) {
+        return shapeFor(pState);
+    }
+
+    @Override
+    public VoxelShape getInteractionShape(BlockState pState, BlockGetter pLevel, BlockPos pPos) {
+        return shapeFor(pState);
+    }
+
+    private static VoxelShape shapeFor(BlockState state) {
+        Direction facing = state.hasProperty(FACING) ? state.getValue(FACING) : Direction.NORTH;
+        return facing.getAxis() == Direction.Axis.X ? SHAPE_EW : SHAPE_NS;
     }
 
     @Override

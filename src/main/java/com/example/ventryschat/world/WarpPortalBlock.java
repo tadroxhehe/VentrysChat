@@ -43,6 +43,32 @@ public class WarpPortalBlock extends BaseEntityBlock {
         return SHAPE;
     }
 
+    /** Indestructible hors créatif (GM0 / survie / aventure). */
+    @Override
+    public float getDestroyProgress(BlockState state, Player player, BlockGetter level, BlockPos pos) {
+        return player != null && player.getAbilities().instabuild ? 1.0F : 0.0F;
+    }
+
+    @Override
+    public boolean canEntityDestroy(BlockState state, BlockGetter level, BlockPos pos, Entity entity) {
+        return false;
+    }
+
+    @Override
+    public boolean onDestroyedByPlayer(
+            BlockState state,
+            Level level,
+            BlockPos pos,
+            Player player,
+            boolean willHarvest,
+            net.minecraft.world.level.material.FluidState fluid
+    ) {
+        if (player == null || !player.getAbilities().instabuild) {
+            return false;
+        }
+        return super.onDestroyedByPlayer(state, level, pos, player, willHarvest, fluid);
+    }
+
     @Override
     public void entityInside(BlockState state, Level level, BlockPos pos, Entity entity) {
         if (level.isClientSide || !(entity instanceof ServerPlayer player)) {

@@ -132,6 +132,34 @@ public final class EcSavedData extends SavedData {
         return true;
     }
 
+    /**
+     * Transfère la propriété d’un panneau (contenu conservé).
+     * @return {@code false} si panneau introuvable ou plafond propriétaire atteint
+     */
+    public boolean transferPanel(String rawName, UUID newOwnerId) {
+        if (newOwnerId == null) {
+            return false;
+        }
+        String key = normalizeKey(rawName);
+        Panel old = panels.get(key);
+        if (old == null) {
+            return false;
+        }
+        if (!newOwnerId.equals(old.ownerId) && countOwnedBy(newOwnerId) >= MAX_PANELS_PER_OWNER) {
+            return false;
+        }
+        Panel neu = new Panel(old.key, old.displayName, newOwnerId);
+        for (int ec = 0; ec < EC_COUNT; ec++) {
+            for (int slot = 0; slot < SLOTS_PER_EC; slot++) {
+                ItemStack stack = old.storages[ec][slot];
+                neu.storages[ec][slot] = stack.isEmpty() ? ItemStack.EMPTY : stack.copy();
+            }
+        }
+        panels.put(key, neu);
+        setDirty();
+        return true;
+    }
+
     public int countOwnedBy(UUID ownerId) {
         if (ownerId == null) {
             return 0;

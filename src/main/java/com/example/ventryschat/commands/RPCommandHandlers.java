@@ -496,6 +496,7 @@ final class RPCommandHandlers {
             sendMessage.accept("§a/setsurname <nom> §7- Définir votre nom RP");
             sendMessage.accept("§a/rpstatus §7- Afficher votre statut RP complet");
             sendMessage.accept("§a/rpprofile §7- Ouvrir votre fiche RP");
+            sendMessage.accept("§a/narrationblock §7(ou §a/nrblock§7) - Recevoir un bloc de texte HRP");
             sendMessage.accept("§7Date de naissance / métier lore : définis par le staff à l'intégration");
             sendMessage.accept("§a/nrp <joueur> <couleur> <texte> §7- Envoyer une narration RP ciblée");
             sendMessage.accept("§7  Couleurs: white, yellow, green, blue, purple, red, orange, gray");
