@@ -27,7 +27,7 @@ Parfait pour les serveurs RP et les joueurs qui veulent une expérience immersiv
 [[dependencies.ventryschat]]
 modId="forge"
 mandatory=true
-versionRange="[40.2.21,)"
+versionRange="[40.2.14,)"
 ordering="NONE"
 side="BOTH"
 
