@@ -501,6 +501,7 @@ final class RPCommandHandlers {
             sendMessage.accept("§a/nrp <joueur> <couleur> <texte> §7- Envoyer une narration RP ciblée");
             sendMessage.accept("§7  Couleurs: white, yellow, green, blue, purple, red, orange, gray");
             sendMessage.accept("§7  Exemple: /nrp PlayerName red Vous entendez un bruit étrange");
+            sendMessage.accept("§a/roll §7- Tirage aléatoire 0–100 (visible ~32 blocs)");
             sendMessage.accept("");
 
             sendMessage.accept("§e§l💡 CONSEILS :");

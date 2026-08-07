@@ -5,7 +5,7 @@ plugins {
     id 'net.minecraftforge.gradle' version '[6.0,6.2)'
 }
 
-version = '2.2.3'
+version = '2.2.4'
 group = 'com.example.ventryschat'
 
 base {
@@ -160,7 +160,7 @@ tasks.named('processResources', ProcessResources).configure {
             minecraft_version: '1.18.2', minecraft_version_range: '[1.18.2,1.19)',
             forge_version: '40.2.21', forge_version_range: '[40.2.21,)',
             loader_version_range: '40.0',
-            mod_id: 'ventryschat', mod_name: 'VentrysChat - Chat RP', mod_license: 'All Rights Reserved', mod_version: '2.2.1',
+            mod_id: 'ventryschat', mod_name: 'VentrysChat - Chat RP', mod_license: 'All Rights Reserved', mod_version: '2.2.4',
             mod_authors: 'Ventrys', mod_description: '🎭 VentrysChat - Mod de Chat RP pour Minecraft avec préfixes spéciaux, couleurs et système de distance réaliste. Transforme le chat en un système de rôle-play immersif parfait pour les serveurs RP.',
     ]
     inputs.properties replaceProperties

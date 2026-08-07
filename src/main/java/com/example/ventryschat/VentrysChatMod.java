@@ -23,6 +23,7 @@ import com.example.ventryschat.commands.PlayerDataResetCommands;
 import com.example.ventryschat.commands.StaffChatCommands;
 import com.example.ventryschat.commands.EcCommands;
 import com.example.ventryschat.commands.StaffUtilityCommands;
+import com.example.ventryschat.commands.RollCommands;
 import com.example.ventryschat.util.ChatLog;
 
 @Mod("ventryschat")
@@ -81,6 +82,7 @@ public class VentrysChatMod {
         BlockWarpCommands.register(event.getDispatcher());
         NarrationBlockCommands.register(event.getDispatcher());
         PlayerDataResetCommands.register(event.getDispatcher());
+        RollCommands.register(event.getDispatcher());
         LOGGER.debug("Commandes VentrysChat enregistrées");
     }
 
