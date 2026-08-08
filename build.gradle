@@ -134,7 +134,7 @@ dependencies {
     // The "userdev" classifier will be requested and setup by ForgeGradle.
     // If the group id is "net.minecraft" and the artifact id is one of ["client", "server", "joined"],
     // then special handling is done to allow a setup of a vanilla dependency without the use of an external repository.
-    minecraft "net.minecraftforge:forge:1.18.2-40.2.21"
+    minecraft "net.minecraftforge:forge:1.18.2-40.2.14"
 
     // Real mod deobf dependency examples - these get remapped to your current mappings
     // compileOnly fg.deobf("mezz.jei:jei-${mc_version}:${jei_version}:api") // Adds JEI API as a compile dependency
@@ -158,7 +158,7 @@ dependencies {
 tasks.named('processResources', ProcessResources).configure {
     var replaceProperties = [
             minecraft_version: '1.18.2', minecraft_version_range: '[1.18.2,1.19)',
-            forge_version: '40.2.21', forge_version_range: '[40.2.21,)',
+            forge_version: '40.2.14', forge_version_range: '[40.2.14,)',
             loader_version_range: '40.0',
             mod_id: 'ventryschat', mod_name: 'VentrysChat - Chat RP', mod_license: 'All Rights Reserved', mod_version: '2.2.4',
             mod_authors: 'Ventrys', mod_description: '🎭 VentrysChat - Mod de Chat RP pour Minecraft avec préfixes spéciaux, couleurs et système de distance réaliste. Transforme le chat en un système de rôle-play immersif parfait pour les serveurs RP.',
