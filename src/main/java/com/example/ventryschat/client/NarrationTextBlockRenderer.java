@@ -12,7 +12,6 @@ import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 
 public class NarrationTextBlockRenderer implements BlockEntityRenderer<NarrationTextBlockEntity> {
     private static final float TEXT_SCALE = 0.018F;
-    private static final int WRAP_AFTER_CHARS = 64;
 
     public NarrationTextBlockRenderer(BlockEntityRendererProvider.Context context) {
     }
@@ -32,7 +31,8 @@ public class NarrationTextBlockRenderer implements BlockEntityRenderer<Narration
         float yaw = -facing.toYRot();
         var font = Minecraft.getInstance().font;
 
-        String[] lines = wrapByChars(text, WRAP_AFTER_CHARS);
+        // Lignes deja calculees par le block entity (recalcul uniquement quand le texte change).
+        String[] lines = blockEntity.getWrappedLines();
 
         renderFace(lines, blockEntity.getColor(), yaw, false, poseStack, buffer, packedLight, font);
         renderFace(lines, blockEntity.getColor(), yaw, true, poseStack, buffer, packedLight, font);
@@ -65,26 +65,5 @@ public class NarrationTextBlockRenderer implements BlockEntityRenderer<Narration
         }
 
         poseStack.popPose();
-    }
-
-    private static String[] wrapByChars(String text, int wrapAfterChars) {
-        if (text == null || text.isEmpty()) {
-            return new String[]{""};
-        }
-        String normalized = text.replace("\r\n", "\n").replace('\r', '\n');
-        java.util.List<String> lines = new java.util.ArrayList<>();
-        for (String rawLine : normalized.split("\n", -1)) {
-            if (rawLine.length() <= wrapAfterChars) {
-                lines.add(rawLine);
-                continue;
-            }
-            int start = 0;
-            while (start < rawLine.length()) {
-                int end = Math.min(start + wrapAfterChars, rawLine.length());
-                lines.add(rawLine.substring(start, end));
-                start = end;
-            }
-        }
-        return lines.toArray(new String[0]);
     }
 }

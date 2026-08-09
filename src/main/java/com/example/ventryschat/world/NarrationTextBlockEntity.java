@@ -22,8 +22,12 @@ public class NarrationTextBlockEntity extends BlockEntity {
             0xAAAAAA  // gris
     );
 
+    private static final int WRAP_AFTER_CHARS = 64;
+
     private String text = "Texte RP";
     private int colorIndex = 0;
+    // Recalcule uniquement quand le texte change, au lieu de re-wrapper a chaque frame de rendu.
+    private String[] wrappedLines = wrapByChars(text, WRAP_AFTER_CHARS);
 
     public NarrationTextBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.NARRATION_TEXT_BLOCK_ENTITY.get(), pos, state);
@@ -33,12 +37,39 @@ public class NarrationTextBlockEntity extends BlockEntity {
         return text;
     }
 
+    /** Lignes deja decoupees pour le rendu, mises en cache tant que le texte ne change pas. */
+    public String[] getWrappedLines() {
+        return wrappedLines;
+    }
+
     public void setText(String newText) {
         if (newText == null) {
             newText = "";
         }
         this.text = newText;
+        this.wrappedLines = wrapByChars(this.text, WRAP_AFTER_CHARS);
         markDirtyAndSync();
+    }
+
+    private static String[] wrapByChars(String text, int wrapAfterChars) {
+        if (text == null || text.isEmpty()) {
+            return new String[]{""};
+        }
+        String normalized = text.replace("\r\n", "\n").replace('\r', '\n');
+        java.util.List<String> lines = new java.util.ArrayList<>();
+        for (String rawLine : normalized.split("\n", -1)) {
+            if (rawLine.length() <= wrapAfterChars) {
+                lines.add(rawLine);
+                continue;
+            }
+            int start = 0;
+            while (start < rawLine.length()) {
+                int end = Math.min(start + wrapAfterChars, rawLine.length());
+                lines.add(rawLine.substring(start, end));
+                start = end;
+            }
+        }
+        return lines.toArray(new String[0]);
     }
 
     public int getColor() {
@@ -69,6 +100,7 @@ public class NarrationTextBlockEntity extends BlockEntity {
         super.load(tag);
         text = tag.getString("NarrationText");
         colorIndex = Math.max(0, Math.min(tag.getInt("NarrationColorIndex"), COLOR_PALETTE.size() - 1));
+        wrappedLines = wrapByChars(text, WRAP_AFTER_CHARS);
     }
 
     @Override
