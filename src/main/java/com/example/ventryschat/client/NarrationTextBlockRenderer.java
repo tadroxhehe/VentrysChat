@@ -58,6 +58,7 @@ public class NarrationTextBlockRenderer implements BlockEntityRenderer<Narration
         for (String line : lines) {
             int width = font.width(line);
             float x = -width / 2.0F;
+            // seeThrough=false : respect du depth buffer (sinon le texte traverse les murs, surtout en spec).
             font.drawInBatch(
                     line,
                     x,
@@ -66,7 +67,7 @@ public class NarrationTextBlockRenderer implements BlockEntityRenderer<Narration
                     false,
                     poseStack.last().pose(),
                     buffer,
-                    true,
+                    false,
                     0,
                     packedLight
             );
