@@ -46,18 +46,15 @@ public class NarrationTextEditScreen extends Screen {
     public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
         this.renderBackground(poseStack);
         drawCenteredString(poseStack, this.font, this.title, this.width / 2, this.height / 2 - 36, 0xFFFFFF);
-        drawCenteredString(poseStack, this.font, "Shift + clic droit en jeu pour changer la couleur", this.width / 2, this.height / 2 - 24, 0xAAAAAA);
+        drawCenteredString(poseStack, this.font, "Les retours a la ligne sont automatiques (fin de phrase / mots)", this.width / 2, this.height / 2 - 24, 0xAAAAAA);
+        drawCenteredString(poseStack, this.font, "Shift + clic droit en jeu pour changer la couleur · Entree pour valider", this.width / 2, this.height / 2 - 14, 0x888888);
         super.render(poseStack, mouseX, mouseY, partialTick);
     }
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (keyCode == 257 || keyCode == 335) { // Enter
-            if (Screen.hasControlDown()) {
-                saveAndClose();
-            } else {
-                insertLineBreakAtCursor();
-            }
+        if (keyCode == 257 || keyCode == 335) { // Enter = valider (plus de saut de ligne manuel)
+            saveAndClose();
             return true;
         }
         if (keyCode == 256) { // Escape
@@ -65,21 +62,6 @@ public class NarrationTextEditScreen extends Screen {
             return true;
         }
         return super.keyPressed(keyCode, scanCode, modifiers);
-    }
-
-    private void insertLineBreakAtCursor() {
-        String value = textBox.getValue();
-        int cursor = textBox.getCursorPosition();
-        if (cursor < 0) {
-            cursor = 0;
-        }
-        if (cursor > value.length()) {
-            cursor = value.length();
-        }
-
-        String updated = value.substring(0, cursor) + "\n" + value.substring(cursor);
-        textBox.setValue(updated);
-        textBox.setCursorPosition(cursor + 1);
     }
 
     private void saveAndClose() {

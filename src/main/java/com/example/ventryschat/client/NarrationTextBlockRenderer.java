@@ -3,6 +3,7 @@ package com.example.ventryschat.client;
 import com.example.ventryschat.world.NarrationTextBlockEntity;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
@@ -11,7 +12,11 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 
 public class NarrationTextBlockRenderer implements BlockEntityRenderer<NarrationTextBlockEntity> {
-    private static final float TEXT_SCALE = 0.018F;
+    /** Plus petit qu'avant (0.018) pour rester proche du bloc. */
+    private static final float TEXT_SCALE = 0.0115F;
+    /** Opacité du texte (~70 %). */
+    private static final int TEXT_ALPHA = 0xB3;
+    private static final float LINE_HEIGHT = 9.0F;
 
     public NarrationTextBlockRenderer(BlockEntityRendererProvider.Context context) {
     }
@@ -29,18 +34,22 @@ public class NarrationTextBlockRenderer implements BlockEntityRenderer<Narration
                 : Direction.NORTH;
 
         float yaw = -facing.toYRot();
-        var font = Minecraft.getInstance().font;
+        Font font = Minecraft.getInstance().font;
 
-        // Lignes deja calculees par le block entity (recalcul uniquement quand le texte change).
         String[] lines = blockEntity.getWrappedLines();
+        int color = withAlpha(blockEntity.getColor(), TEXT_ALPHA);
 
-        renderFace(lines, blockEntity.getColor(), yaw, false, poseStack, buffer, packedLight, font);
-        renderFace(lines, blockEntity.getColor(), yaw, true, poseStack, buffer, packedLight, font);
+        renderFace(lines, color, yaw, false, poseStack, buffer, packedLight, font);
+        renderFace(lines, color, yaw, true, poseStack, buffer, packedLight, font);
     }
 
-    private static void renderFace(String[] lines, int color, float yaw, boolean backFace, PoseStack poseStack, MultiBufferSource buffer, int packedLight, net.minecraft.client.gui.Font font) {
+    private static int withAlpha(int rgb, int alpha) {
+        return ((alpha & 0xFF) << 24) | (rgb & 0xFFFFFF);
+    }
+
+    private static void renderFace(String[] lines, int color, float yaw, boolean backFace, PoseStack poseStack, MultiBufferSource buffer, int packedLight, Font font) {
         poseStack.pushPose();
-        poseStack.translate(0.5D, 0.65D, 0.5D);
+        poseStack.translate(0.5D, 0.62D, 0.5D);
         poseStack.mulPose(com.mojang.math.Vector3f.YP.rotationDegrees(yaw + (backFace ? 180.0F : 0.0F)));
         poseStack.translate(0.0D, 0.0D, 0.281D);
         poseStack.scale(-TEXT_SCALE, -TEXT_SCALE, TEXT_SCALE);
@@ -57,11 +66,11 @@ public class NarrationTextBlockRenderer implements BlockEntityRenderer<Narration
                     false,
                     poseStack.last().pose(),
                     buffer,
-                    false,
+                    true,
                     0,
                     packedLight
             );
-            y += 10.0F;
+            y += LINE_HEIGHT;
         }
 
         poseStack.popPose();

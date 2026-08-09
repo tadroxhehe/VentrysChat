@@ -9,6 +9,7 @@ import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class NarrationTextBlockEntity extends BlockEntity {
@@ -22,12 +23,13 @@ public class NarrationTextBlockEntity extends BlockEntity {
             0xAAAAAA  // gris
     );
 
-    private static final int WRAP_AFTER_CHARS = 64;
+    /** Largeur max d'une ligne (~1.5–2 blocs à l'échelle réduite du renderer). */
+    private static final int WRAP_MAX_CHARS = 28;
 
     private String text = "Texte RP";
     private int colorIndex = 0;
     // Recalcule uniquement quand le texte change, au lieu de re-wrapper a chaque frame de rendu.
-    private String[] wrappedLines = wrapByChars(text, WRAP_AFTER_CHARS);
+    private String[] wrappedLines = wrapForDisplay(text, WRAP_MAX_CHARS);
 
     public NarrationTextBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.NARRATION_TEXT_BLOCK_ENTITY.get(), pos, state);
@@ -46,30 +48,102 @@ public class NarrationTextBlockEntity extends BlockEntity {
         if (newText == null) {
             newText = "";
         }
-        this.text = newText;
-        this.wrappedLines = wrapByChars(this.text, WRAP_AFTER_CHARS);
+        this.text = normalizeWhitespace(newText);
+        this.wrappedLines = wrapForDisplay(this.text, WRAP_MAX_CHARS);
         markDirtyAndSync();
     }
 
-    private static String[] wrapByChars(String text, int wrapAfterChars) {
+    /**
+     * Retire les retours à la ligne joueur, coupe à la fin de phrase quand c'est possible,
+     * sinon wrap par mots complets (jamais au milieu d'un mot).
+     */
+    static String[] wrapForDisplay(String text, int maxChars) {
         if (text == null || text.isEmpty()) {
             return new String[]{""};
         }
-        String normalized = text.replace("\r\n", "\n").replace('\r', '\n');
-        java.util.List<String> lines = new java.util.ArrayList<>();
-        for (String rawLine : normalized.split("\n", -1)) {
-            if (rawLine.length() <= wrapAfterChars) {
-                lines.add(rawLine);
-                continue;
-            }
-            int start = 0;
-            while (start < rawLine.length()) {
-                int end = Math.min(start + wrapAfterChars, rawLine.length());
-                lines.add(rawLine.substring(start, end));
-                start = end;
-            }
+
+        String normalized = normalizeWhitespace(text);
+        if (normalized.isEmpty()) {
+            return new String[]{""};
+        }
+
+        List<String> lines = new ArrayList<>();
+        for (String sentence : splitSentences(normalized)) {
+            wrapWordsInto(lines, sentence, maxChars);
+        }
+        if (lines.isEmpty()) {
+            return new String[]{""};
         }
         return lines.toArray(new String[0]);
+    }
+
+    static String normalizeWhitespace(String text) {
+        return text.replace("\r\n", "\n")
+                .replace('\r', '\n')
+                .replace('\n', ' ')
+                .replaceAll("\\s+", " ")
+                .trim();
+    }
+
+    private static List<String> splitSentences(String text) {
+        List<String> sentences = new ArrayList<>();
+        StringBuilder current = new StringBuilder();
+
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            current.append(c);
+
+            boolean endOfSentence = (c == '.' || c == '!' || c == '?')
+                    && (i + 1 >= text.length() || Character.isWhitespace(text.charAt(i + 1)));
+            if (!endOfSentence) {
+                continue;
+            }
+
+            String sentence = current.toString().trim();
+            if (!sentence.isEmpty()) {
+                sentences.add(sentence);
+            }
+            current.setLength(0);
+            while (i + 1 < text.length() && Character.isWhitespace(text.charAt(i + 1))) {
+                i++;
+            }
+        }
+
+        String rest = current.toString().trim();
+        if (!rest.isEmpty()) {
+            sentences.add(rest);
+        }
+        return sentences;
+    }
+
+    private static void wrapWordsInto(List<String> lines, String text, int maxChars) {
+        if (text.length() <= maxChars) {
+            lines.add(text);
+            return;
+        }
+
+        String[] words = text.split(" ");
+        StringBuilder line = new StringBuilder();
+        for (String word : words) {
+            if (word.isEmpty()) {
+                continue;
+            }
+            if (line.length() == 0) {
+                // Mot plus long que la limite : on le garde entier (pas de coupe).
+                line.append(word);
+                continue;
+            }
+            if (line.length() + 1 + word.length() <= maxChars) {
+                line.append(' ').append(word);
+            } else {
+                lines.add(line.toString());
+                line.setLength(0);
+                line.append(word);
+            }
+        }
+        if (line.length() > 0) {
+            lines.add(line.toString());
+        }
     }
 
     public int getColor() {
@@ -98,9 +172,9 @@ public class NarrationTextBlockEntity extends BlockEntity {
     @Override
     public void load(CompoundTag tag) {
         super.load(tag);
-        text = tag.getString("NarrationText");
+        text = normalizeWhitespace(tag.getString("NarrationText"));
         colorIndex = Math.max(0, Math.min(tag.getInt("NarrationColorIndex"), COLOR_PALETTE.size() - 1));
-        wrappedLines = wrapByChars(text, WRAP_AFTER_CHARS);
+        wrappedLines = wrapForDisplay(text, WRAP_MAX_CHARS);
     }
 
     @Override
