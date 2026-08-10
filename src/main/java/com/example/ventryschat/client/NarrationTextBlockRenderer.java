@@ -7,14 +7,12 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
-import net.minecraft.core.Direction;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 
+/**
+ * Texte HRP en billboard : toujours face à la caméra du joueur (yaw + pitch).
+ */
 public class NarrationTextBlockRenderer implements BlockEntityRenderer<NarrationTextBlockEntity> {
-    /** Plus petit qu'avant (0.018) pour rester proche du bloc. */
     private static final float TEXT_SCALE = 0.0115F;
-    /** Opacité du texte (~70 %). */
     private static final int TEXT_ALPHA = 0xB3;
     private static final float LINE_HEIGHT = 9.0F;
 
@@ -28,37 +26,19 @@ public class NarrationTextBlockRenderer implements BlockEntityRenderer<Narration
             return;
         }
 
-        BlockState state = blockEntity.getBlockState();
-        Direction facing = state.hasProperty(BlockStateProperties.HORIZONTAL_FACING)
-                ? state.getValue(BlockStateProperties.HORIZONTAL_FACING)
-                : Direction.NORTH;
-
-        float yaw = -facing.toYRot();
         Font font = Minecraft.getInstance().font;
-
         String[] lines = blockEntity.getWrappedLines();
         int color = withAlpha(blockEntity.getColor(), TEXT_ALPHA);
 
-        renderFace(lines, color, yaw, false, poseStack, buffer, packedLight, font);
-        renderFace(lines, color, yaw, true, poseStack, buffer, packedLight, font);
-    }
-
-    private static int withAlpha(int rgb, int alpha) {
-        return ((alpha & 0xFF) << 24) | (rgb & 0xFFFFFF);
-    }
-
-    private static void renderFace(String[] lines, int color, float yaw, boolean backFace, PoseStack poseStack, MultiBufferSource buffer, int packedLight, Font font) {
         poseStack.pushPose();
         poseStack.translate(0.5D, 0.62D, 0.5D);
-        poseStack.mulPose(com.mojang.math.Vector3f.YP.rotationDegrees(yaw + (backFace ? 180.0F : 0.0F)));
-        poseStack.translate(0.0D, 0.0D, 0.281D);
+        // Oriente le plan du texte vers la caméra (360° miroir du point de vue).
+        poseStack.mulPose(Minecraft.getInstance().getEntityRenderDispatcher().cameraOrientation());
         poseStack.scale(-TEXT_SCALE, -TEXT_SCALE, TEXT_SCALE);
 
         float y = 0.0F;
         for (String line : lines) {
-            int width = font.width(line);
-            float x = -width / 2.0F;
-            // seeThrough=false : respect du depth buffer (sinon le texte traverse les murs, surtout en spec).
+            float x = -font.width(line) / 2.0F;
             font.drawInBatch(
                     line,
                     x,
@@ -75,5 +55,9 @@ public class NarrationTextBlockRenderer implements BlockEntityRenderer<Narration
         }
 
         poseStack.popPose();
+    }
+
+    private static int withAlpha(int rgb, int alpha) {
+        return ((alpha & 0xFF) << 24) | (rgb & 0xFFFFFF);
     }
 }
