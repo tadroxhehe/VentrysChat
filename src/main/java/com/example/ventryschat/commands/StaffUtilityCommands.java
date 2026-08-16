@@ -245,85 +245,7 @@ public final class StaffUtilityCommands {
                             return 1;
                         })));
 
-        dispatcher.register(Commands.literal("ventrysmsg_internal")
-                .then(Commands.argument("tout", StringArgumentType.greedyString())
-                        .suggests((ctx, builder) -> suggestPrivateMessageTargets(ctx.getSource(), builder))
-                        .executes(ctx -> executePrivateMessage(ctx.getSource().getPlayerOrException(), StringArgumentType.getString(ctx, "tout")))));
-
-        dispatcher.register(Commands.literal("msg")
-                .then(Commands.argument("tout", StringArgumentType.greedyString())
-                        .suggests((ctx, builder) -> suggestPrivateMessageTargets(ctx.getSource(), builder))
-                        .executes(ctx -> executePrivateMessage(ctx.getSource().getPlayerOrException(), StringArgumentType.getString(ctx, "tout")))));
-
-        dispatcher.register(Commands.literal("tell")
-                .then(Commands.argument("tout", StringArgumentType.greedyString())
-                        .suggests((ctx, builder) -> suggestPrivateMessageTargets(ctx.getSource(), builder))
-                        .executes(ctx -> executePrivateMessage(ctx.getSource().getPlayerOrException(), StringArgumentType.getString(ctx, "tout")))));
-
-        dispatcher.register(Commands.literal("w")
-                .then(Commands.argument("tout", StringArgumentType.greedyString())
-                        .suggests((ctx, builder) -> suggestPrivateMessageTargets(ctx.getSource(), builder))
-                        .executes(ctx -> executePrivateMessage(ctx.getSource().getPlayerOrException(), StringArgumentType.getString(ctx, "tout")))));
-
-        dispatcher.register(Commands.literal("r")
-                .then(Commands.argument("message", StringArgumentType.greedyString())
-                        .executes(ctx -> {
-                            ServerPlayer from = ctx.getSource().getPlayerOrException();
-                            String message = StringArgumentType.getString(ctx, "message");
-                            ServerPlayer to = PrivateMessageHandler.getLastPartner(from, from.getServer());
-                            if (to == null) {
-                                from.sendMessage(new TextComponent("§cPersonne à qui répondre."), from.getUUID());
-                                return 0;
-                            }
-                            PrivateMessageHandler.sendMsg(from, to, message);
-                            return 1;
-                        })));
-
         LOGGER.debug("Commandes staff utilitaires enregistrées");
-    }
-
-    private static String[] splitTargetAndMessage(net.minecraft.server.MinecraftServer server, String greedy) {
-        String[] words = greedy.trim().split("\\s+");
-        if (words.length < 2) {
-            return null;
-        }
-        int maxTake = Math.min(6, words.length - 1);
-        for (int take = maxTake; take >= 1; take--) {
-            StringBuilder candidate = new StringBuilder();
-            for (int i = 0; i < take; i++) {
-                if (i > 0) candidate.append(' ');
-                candidate.append(words[i]);
-            }
-            String c = candidate.toString();
-            if (RPNameHelper.findOnlinePlayer(server, c) != null) {
-                StringBuilder rest = new StringBuilder();
-                for (int i = take; i < words.length; i++) {
-                    if (i > take) rest.append(' ');
-                    rest.append(words[i]);
-                }
-                return new String[]{c, rest.toString()};
-            }
-        }
-        return null;
-    }
-
-    private static CompletableFuture<Suggestions> suggestPrivateMessageTargets(CommandSourceStack source, SuggestionsBuilder builder) {
-        if (source.getServer() == null) {
-            return builder.buildFuture();
-        }
-        String input = builder.getRemaining();
-        if (splitTargetAndMessage(source.getServer(), input) != null) {
-            return builder.buildFuture();
-        }
-        Set<String> candidates = new LinkedHashSet<>();
-        for (ServerPlayer player : source.getServer().getPlayerList().getPlayers()) {
-            candidates.add(player.getGameProfile().getName() + " ");
-            String rpName = RPNameHelper.displayName(player);
-            if (!rpName.isBlank()) {
-                candidates.add(rpName + " ");
-            }
-        }
-        return SharedSuggestionProvider.suggest(candidates, builder);
     }
 
     private static CompletableFuture<Suggestions> suggestOnlinePlayerNames(CommandSourceStack source, SuggestionsBuilder builder) {
@@ -346,30 +268,6 @@ public final class StaffUtilityCommands {
             candidates.addAll(WarpSavedData.get(level).getWarpNames());
         }
         return SharedSuggestionProvider.suggest(candidates, builder);
-    }
-
-    private static int executePrivateMessage(ServerPlayer from, String greedy) {
-        String[] parsed = splitTargetAndMessage(from.getServer(), greedy);
-        if (parsed == null) {
-            from.sendMessage(new TextComponent("§cUsage: /msg <pseudo ou nom RP> <message>"), from.getUUID());
-            return 0;
-        }
-        ServerPlayer to = RPNameHelper.findOnlinePlayer(from.getServer(), parsed[0]);
-        if (to == null) {
-            from.sendMessage(new TextComponent("§cJoueur introuvable (pseudo ou nom RP)."), from.getUUID());
-            return 0;
-        }
-        String cleanMessage = parsed[1] == null ? "" : parsed[1].trim();
-        if (cleanMessage.isEmpty()) {
-            from.sendMessage(new TextComponent("§cMessage vide."), from.getUUID());
-            return 0;
-        }
-        if (from.getUUID().equals(to.getUUID())) {
-            from.sendMessage(new TextComponent("§cTu ne peux pas t'envoyer un MP à toi-même."), from.getUUID());
-            return 0;
-        }
-        PrivateMessageHandler.sendMsg(from, to, cleanMessage);
-        return 1;
     }
 
     private static void rememberBack(ServerPlayer player) {

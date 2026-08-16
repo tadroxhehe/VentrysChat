@@ -1,7 +1,6 @@
 package com.example.ventryschat;
 
 import com.mojang.logging.LogUtils;
-import com.mojang.brigadier.tree.CommandNode;
 import com.example.ventryschat.config.VentrysChatConfig;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.ModLoadingContext;
@@ -66,14 +65,12 @@ public class VentrysChatMod {
         });
         
         LOGGER.debug("VentrysChat setup réseau OK");
-        LOGGER.debug("Préfixes supportés : (aucun) [RP] (15 blocs), * (15 blocs), [ (15 blocs), - (4 blocs), + (30 blocs), ! (60 blocs), -- (2 blocs)");
+        LOGGER.debug("Chat RP (préfixes + MP) désactivé côté mod — repris par le plugin Bukkit");
         LOGGER.debug("Commandes : /setname <prénom>, /setsurname <nom>, /narration <message>, /rpstatus");
         LOGGER.debug("Commandes OP : /setnameother <joueur> <prénom>, /setsurnameother <joueur> <nom>");
     }
     
     private void registerCommands(net.minecraftforge.event.RegisterCommandsEvent event) {
-        // Retire les alias MP vanilla pour laisser les commandes custom prendre la main.
-        disableVanillaPrivateMessageAliases(event.getDispatcher().getRoot());
         RPCommands.register(event.getDispatcher());
         AptitudesCommands.register(event.getDispatcher());
         StaffUtilityCommands.register(event.getDispatcher());
@@ -86,13 +83,6 @@ public class VentrysChatMod {
         LOGGER.debug("Commandes VentrysChat enregistrées");
     }
 
-    private static void disableVanillaPrivateMessageAliases(CommandNode<?> root) {
-        root.getChildren().removeIf(node -> {
-            String name = node.getName();
-            return "msg".equals(name) || "tell".equals(name) || "w".equals(name);
-        });
-    }
-    
     /**
      * Gère le démarrage du serveur
      */
