@@ -1,0 +1,15 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.example.ventryschat.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "refmap": "mixins.ventryschat.refmap.json",
+  "mixins": [
+    "EntityBroadcastVanishMixin"
+  ],
+  "client": [],
+  "server": [],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
