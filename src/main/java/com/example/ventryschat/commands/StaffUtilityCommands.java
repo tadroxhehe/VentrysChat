@@ -132,24 +132,6 @@ public final class StaffUtilityCommands {
                             return 0;
                         })));
 
-        dispatcher.register(Commands.literal("vanish")
-                .requires(source -> VentrysPermsBridge.staff(source, "ventryspermissions.moderation.vanish"))
-                .executes(ctx -> {
-                    ServerPlayer p = ctx.getSource().getPlayerOrException();
-                    VanishManager.setVanished(p, true);
-                    p.sendMessage(new TextComponent("§aVanish activé."), p.getUUID());
-                    return 1;
-                }));
-
-        dispatcher.register(Commands.literal("devanish")
-                .requires(source -> VentrysPermsBridge.staff(source, "ventryspermissions.moderation.vanish"))
-                .executes(ctx -> {
-                    ServerPlayer p = ctx.getSource().getPlayerOrException();
-                    VanishManager.setVanished(p, false);
-                    p.sendMessage(new TextComponent("§aVanish désactivé."), p.getUUID());
-                    return 1;
-                }));
-
         dispatcher.register(Commands.literal("tpzone")
                 .requires(source -> VentrysPermsBridge.staff(source, "ventryspermissions.teleport.zone"))
                 .then(Commands.argument("joueur", StringArgumentType.word())

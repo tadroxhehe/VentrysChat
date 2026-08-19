@@ -15,12 +15,8 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Vanish : effet d'invisibilite (repere visuel pour le staff autorise a voir les vanish) +
- * masquage reel de l'entite cote client pour tout le monde d'autre. Le masquage reel passe par
- * deux mecanismes complementaires : un paquet de suppression envoye immediatement au moment du
- * /vanish (voir hideFromUnauthorized), et EntityBroadcastVanishMixin qui empeche ensuite tout
- * retracking (nouvelle connexion, deplacement...) tant que le joueur reste vanish.
- * Reste visible dans le tab (choix assume).
+ * Moteur vanish (Skript {@code set vanish of player}) : invisibilité + masquage
+ * d'entité. Les commandes {@code /vanish} / {@code /devanish} sont côté Skript.
  */
 @Mod.EventBusSubscriber(modid = "ventryschat")
 public final class VanishManager {
@@ -34,7 +30,7 @@ public final class VanishManager {
         return VANISHED.contains(uuid);
     }
 
-    /** Utilise par EntityBroadcastVanishMixin pour decider si `target` doit etre trackee chez `viewer`. */
+    /** Utilise par EntityBroadcastVanishMixin pour decider si {@code target} doit etre trackee chez {@code viewer}. */
     public static boolean canSee(ServerPlayer viewer, ServerPlayer target) {
         if (viewer == target || !isVanished(target.getUUID())) {
             return true;

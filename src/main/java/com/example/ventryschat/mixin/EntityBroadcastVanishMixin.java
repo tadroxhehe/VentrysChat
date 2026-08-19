@@ -10,17 +10,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
  * Empeche le tracker d'entites serveur de (re)spawner un joueur vanish chez un client non
- * autorise : nouvelle connexion, joueur qui s'approche, changement de section de chunk...
- * Complement du paquet de suppression immediat envoye par VanishManager au moment du /vanish.
+ * autorise. Complement du paquet de suppression immediat envoye par VanishManager.
  */
 @Mixin(Entity.class)
 public abstract class EntityBroadcastVanishMixin {
 
-    @Inject(
-            method = "broadcastToPlayer(Lnet/minecraft/server/level/ServerPlayer;)Z",
-            at = @At("HEAD"),
-            cancellable = true
-    )
+    @Inject(method = "broadcastToPlayer(Lnet/minecraft/server/level/ServerPlayer;)Z", at = @At("HEAD"), cancellable = true)
     private void ventryschat_hideVanishedFromUnauthorized(ServerPlayer player, CallbackInfoReturnable<Boolean> cir) {
         if ((Object) this instanceof ServerPlayer target && !VanishManager.canSee(player, target)) {
             cir.setReturnValue(false);
