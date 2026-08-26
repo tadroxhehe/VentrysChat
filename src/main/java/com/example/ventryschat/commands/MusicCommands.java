@@ -2,6 +2,7 @@ package com.example.ventryschat.commands;
 
 import com.example.ventryschat.compat.VentrysPermsBridge;
 import com.example.ventryschat.music.MusicCatalog;
+import com.example.ventryschat.music.MusicNetwork;
 import com.example.ventryschat.music.MusicServerManager;
 import com.example.ventryschat.music.MusicZone;
 import com.mojang.brigadier.CommandDispatcher;
@@ -44,6 +45,8 @@ public final class MusicCommands {
                             ctx.getSource(),
                             StringArgumentType.getString(ctx, "args")
                         ))))
+                .then(Commands.literal("url")
+                    .executes(ctx -> openUrlGui(ctx.getSource())))
                 .then(Commands.literal("stop")
                     .executes(ctx -> stop(ctx.getSource())))
                 .then(Commands.literal("list")
@@ -105,10 +108,18 @@ public final class MusicCommands {
             return 0;
         }
 
+        if (MusicServerManager.isHttpUrl(trackOrUrl)) {
+            String reject = MusicServerManager.urlRejectReason(trackOrUrl);
+            if (reject != null) {
+                source.sendFailure(new TextComponent(reject));
+                return 0;
+            }
+        }
+
         Optional<MusicZone> zone = MusicServerManager.play(player, trackOrUrl, radius, durationMs);
         if (zone.isEmpty()) {
             if (MusicServerManager.isHttpUrl(trackOrUrl)) {
-                source.sendFailure(new TextComponent("URL refusée (http/https uniquement)."));
+                source.sendFailure(new TextComponent("Impossible de lancer cette URL."));
             } else {
                 source.sendFailure(new TextComponent("Piste inconnue: " + trackOrUrl + " — /music list"));
             }
@@ -154,6 +165,14 @@ public final class MusicCommands {
         return s.substring(0, max - 1) + "…";
     }
 
+    /** Ouvre un écran client pour coller une URL trop longue pour le chat (~256). */
+    private static int openUrlGui(CommandSourceStack source) throws CommandSyntaxException {
+        ServerPlayer player = source.getPlayerOrException();
+        MusicNetwork.openUrlScreen(player);
+        source.sendSuccess(new TextComponent("§aÉcran URL ouvert — colle le lien Discord puis Lancer."), false);
+        return 1;
+    }
+
     private static int stop(CommandSourceStack source) throws CommandSyntaxException {
         ServerPlayer player = source.getPlayerOrException();
         int n = MusicServerManager.stopNearOrAll(player);
@@ -164,7 +183,7 @@ public final class MusicCommands {
     private static int list(CommandSourceStack source) {
         if (MusicCatalog.ids().isEmpty()) {
             source.sendSuccess(new TextComponent("§7Aucune piste packagée. Tu peux aussi:"), false);
-            source.sendSuccess(new TextComponent("§f/music play https://…/fichier.ogg 50"), false);
+            source.sendSuccess(new TextComponent("§f/music play https://…/fichier.mp3 50"), false);
             return 0;
         }
         source.sendSuccess(new TextComponent("§6Pistes packagées (clique pour rejouer) :"), false);
@@ -177,7 +196,7 @@ public final class MusicCommands {
                     new TextComponent("Clic → " + cmd))));
             source.sendSuccess(line, false);
         }
-        source.sendSuccess(new TextComponent("§7Ou lien direct: §f/music play <url.ogg> <rayon> [secondes]"), false);
+        source.sendSuccess(new TextComponent("§7Ou lien direct: §f/music play <url.mp3|.ogg|.wav> <rayon> [secondes]"), false);
         return MusicCatalog.ids().size();
     }
 

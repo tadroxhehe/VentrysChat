@@ -65,7 +65,7 @@ public final class MusicVolumeScreen extends Screen {
         drawCenteredString(
             pose,
             this.font,
-            new TextComponent("§7Indépendant du volume Musique / Maître vanilla."),
+            new TextComponent("§7Courbe douce : 1 % ≈ inaudible, 100 % = max confortable."),
             this.width / 2,
             this.height / 6 + 24,
             0xA0A0A0

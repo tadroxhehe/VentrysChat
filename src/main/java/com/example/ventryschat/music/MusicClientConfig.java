@@ -67,9 +67,18 @@ public final class MusicClientConfig {
         return volumePercent;
     }
 
-    /** Multiplicateur 0.0–1.0 appliqué côté client uniquement. */
+    /**
+     * Gain client 0→1. Courbe perceptive (pas linéaire) :
+     * 1 % ≈ quasi silence, le max reste plus doux qu'avant.
+     */
     public static float getVolumeMultiplier() {
-        return getVolumePercent() / 100.0F;
+        float t = getVolumePercent() / 100.0F;
+        if (t <= 0.0F) {
+            return 0.0F;
+        }
+        // ^3 : 1% → 0.000001, 10% → 0.001, 50% → 0.125, 100% → 1
+        // × 0.45 : plafond global pour éviter le boom
+        return (float) (Math.pow(t, 3.0) * 0.45);
     }
 
     public static void setVolumePercent(int percent) {

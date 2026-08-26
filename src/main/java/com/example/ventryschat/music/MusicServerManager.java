@@ -63,7 +63,7 @@ public final class MusicServerManager {
         String raw = trackOrUrl == null ? "" : trackOrUrl.trim();
 
         if (isHttpUrl(raw)) {
-            if (!isAllowedUrl(raw)) {
+            if (urlRejectReason(raw) != null) {
                 return Optional.empty();
             }
             long duration = durationMsOverride != null
@@ -121,20 +121,46 @@ public final class MusicServerManager {
         return play(source, trackId, radius, null);
     }
 
-    private static boolean isAllowedUrl(String url) {
+    /**
+     * Null si l'URL est acceptable ; sinon message d'erreur joueur.
+     * Pages de streaming (YouTube…) refusées — lien direct vers un fichier audio (mp3/ogg/wav…).
+     */
+    @Nullable
+    public static String urlRejectReason(String url) {
+        if (url == null || url.isBlank()) {
+            return "URL vide.";
+        }
         try {
-            URI uri = URI.create(url);
+            URI uri = URI.create(url.trim());
             String scheme = uri.getScheme();
             if (scheme == null) {
-                return false;
+                return "URL invalide.";
             }
             String s = scheme.toLowerCase(Locale.ROOT);
             if (!"http".equals(s) && !"https".equals(s)) {
-                return false;
+                return "URL refusée (http/https uniquement).";
             }
-            return uri.getHost() != null && !uri.getHost().isBlank();
+            String host = uri.getHost();
+            if (host == null || host.isBlank()) {
+                return "URL invalide (hôte manquant).";
+            }
+            String h = host.toLowerCase(Locale.ROOT);
+            if (h.equals("youtu.be")
+                    || h.contains("youtube.com")
+                    || h.contains("youtube-nocookie.com")
+                    || h.contains("spotify.com")
+                    || h.contains("soundcloud.com")
+                    || h.contains("music.apple.com")
+                    || h.contains("deezer.com")
+                    || h.contains("bandcamp.com")
+                    || h.contains("tiktok.com")
+                    || h.contains("twitch.tv")) {
+                return "YouTube / plateformes de streaming non supportés. "
+                    + "Héberge le fichier (Catbox, CDN…) et utilise le lien direct .mp3 / .ogg / .wav.";
+            }
+            return null;
         } catch (Exception e) {
-            return false;
+            return "URL invalide.";
         }
     }
 
