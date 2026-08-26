@@ -1,19 +1,19 @@
 package com.example.ventryschat.music;
 
 import com.mojang.logging.LogUtils;
-import net.minecraft.network.chat.TextComponent;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.phys.Vec3;
 import org.slf4j.Logger;
 
 import javax.annotation.Nullable;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -25,6 +25,10 @@ import java.util.UUID;
 public final class MusicServerManager {
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final Map<UUID, MusicZone> ZONES = new LinkedHashMap<>();
+    /** Durée par défaut pour une URL (5 min) si non précisée. */
+    public static final long DEFAULT_URL_DURATION_MS = 300_000L;
+    private static final ResourceLocation PLACEHOLDER_SOUND =
+        new ResourceLocation("ventryschat", "music.bataille");
     private static int tickCounter;
 
     private MusicServerManager() {
@@ -39,37 +43,119 @@ public final class MusicServerManager {
         return List.copyOf(ZONES.values());
     }
 
+    public static boolean isHttpUrl(String value) {
+        if (value == null) {
+            return false;
+        }
+        String v = value.trim().toLowerCase(Locale.ROOT);
+        return v.startsWith("http://") || v.startsWith("https://");
+    }
+
+    /** Piste catalogue ou URL http(s). */
     public static Optional<MusicZone> play(
             ServerPlayer source,
-            String trackId,
-            float radius
+            String trackOrUrl,
+            float radius,
+            @Nullable Long durationMsOverride
     ) {
-        Optional<MusicCatalog.Track> trackOpt = MusicCatalog.get(trackId);
+        float r = Math.max(1.0F, Math.min(512.0F, radius));
+        Vec3 pos = source.position();
+        String raw = trackOrUrl == null ? "" : trackOrUrl.trim();
+
+        if (isHttpUrl(raw)) {
+            if (!isAllowedUrl(raw)) {
+                return Optional.empty();
+            }
+            long duration = durationMsOverride != null
+                ? Math.max(5_000L, Math.min(3_600_000L, durationMsOverride))
+                : DEFAULT_URL_DURATION_MS;
+            String label = shortUrlLabel(raw);
+            MusicZone zone = new MusicZone(
+                UUID.randomUUID(),
+                label,
+                PLACEHOLDER_SOUND,
+                raw,
+                source.level.dimension(),
+                pos.x,
+                pos.y,
+                pos.z,
+                r,
+                System.currentTimeMillis(),
+                duration
+            );
+            ZONES.put(zone.zoneId, zone);
+            MusicNetwork.broadcastUpsert(source.getServer(), zone);
+            LOGGER.info("Music URL zone {} url={} r={} by {}", zone.zoneId, raw, r, source.getGameProfile().getName());
+            return Optional.of(zone);
+        }
+
+        Optional<MusicCatalog.Track> trackOpt = MusicCatalog.get(raw);
         if (trackOpt.isEmpty()) {
             return Optional.empty();
         }
         MusicCatalog.Track track = trackOpt.get();
-        float r = Math.max(1.0F, Math.min(512.0F, radius));
-        Vec3 pos = source.position();
+        long duration = durationMsOverride != null
+            ? Math.max(5_000L, Math.min(3_600_000L, durationMsOverride))
+            : track.durationMs();
         MusicZone zone = new MusicZone(
             UUID.randomUUID(),
             track.id(),
             track.sound(),
+            "",
             source.level.dimension(),
             pos.x,
             pos.y,
             pos.z,
             r,
             System.currentTimeMillis(),
-            track.durationMs()
+            duration
         );
         ZONES.put(zone.zoneId, zone);
         MusicNetwork.broadcastUpsert(source.getServer(), zone);
-        LOGGER.info("Music zone {} track={} r={} by {}", zone.zoneId, trackId, r, source.getGameProfile().getName());
+        LOGGER.info("Music zone {} track={} r={} by {}", zone.zoneId, raw, r, source.getGameProfile().getName());
         return Optional.of(zone);
     }
 
-    public static int stopAll(@Nullable MinecraftServer server) {
+    /** Compat ancienne signature. */
+    public static Optional<MusicZone> play(ServerPlayer source, String trackId, float radius) {
+        return play(source, trackId, radius, null);
+    }
+
+    private static boolean isAllowedUrl(String url) {
+        try {
+            URI uri = URI.create(url);
+            String scheme = uri.getScheme();
+            if (scheme == null) {
+                return false;
+            }
+            String s = scheme.toLowerCase(Locale.ROOT);
+            if (!"http".equals(s) && !"https".equals(s)) {
+                return false;
+            }
+            return uri.getHost() != null && !uri.getHost().isBlank();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private static String shortUrlLabel(String url) {
+        try {
+            URI uri = URI.create(url);
+            String path = uri.getPath();
+            if (path != null && !path.isEmpty() && !"/".equals(path)) {
+                int slash = path.lastIndexOf('/');
+                String name = slash >= 0 ? path.substring(slash + 1) : path;
+                if (!name.isBlank()) {
+                    return name.length() > 48 ? name.substring(0, 48) : name;
+                }
+            }
+            return uri.getHost() != null ? uri.getHost() : "url";
+        } catch (Exception e) {
+            return "url";
+        }
+    }
+
+    public static int stopAll(@Nullable net.minecraft.server.MinecraftServer server) {
         int n = ZONES.size();
         List<UUID> ids = new ArrayList<>(ZONES.keySet());
         ZONES.clear();
@@ -81,7 +167,7 @@ public final class MusicServerManager {
         return n;
     }
 
-    public static boolean stop(UUID zoneId, @Nullable MinecraftServer server) {
+    public static boolean stop(UUID zoneId, @Nullable net.minecraft.server.MinecraftServer server) {
         MusicZone removed = ZONES.remove(zoneId);
         if (removed == null) {
             return false;
@@ -92,7 +178,6 @@ public final class MusicServerManager {
         return true;
     }
 
-    /** Arrête la zone la plus proche du joueur (sinon toutes). */
     public static int stopNearOrAll(ServerPlayer player) {
         MusicZone nearest = null;
         double best = Double.MAX_VALUE;
@@ -123,7 +208,7 @@ public final class MusicServerManager {
         MusicNetwork.sendSnapshot(player, inDim);
     }
 
-    public static void onServerTick(MinecraftServer server) {
+    public static void onServerTick(net.minecraft.server.MinecraftServer server) {
         tickCounter++;
         if (tickCounter % 20 != 0) {
             return;
@@ -137,9 +222,5 @@ public final class MusicServerManager {
                 MusicNetwork.broadcastRemove(server, e.getKey());
             }
         }
-    }
-
-    public static void notifyStaff(ServerPlayer staff, String message) {
-        staff.sendMessage(new TextComponent(message), staff.getUUID());
     }
 }

@@ -12,8 +12,12 @@ import java.util.UUID;
 /** Zone musicale active côté serveur / snapshot réseau. */
 public final class MusicZone {
     public final UUID zoneId;
+    /** Id catalogue, ou libellé court pour une URL. */
     public final String trackId;
+    /** Sound vanilla/mod ; ignoré si {@link #streamUrl} est renseigné. */
     public final ResourceLocation soundId;
+    /** URL directe (ogg/mp3…) ; vide = piste packagée. */
+    public final String streamUrl;
     public final ResourceKey<Level> dimension;
     public final double x;
     public final double y;
@@ -26,6 +30,7 @@ public final class MusicZone {
             UUID zoneId,
             String trackId,
             ResourceLocation soundId,
+            String streamUrl,
             ResourceKey<Level> dimension,
             double x,
             double y,
@@ -37,6 +42,7 @@ public final class MusicZone {
         this.zoneId = zoneId;
         this.trackId = trackId;
         this.soundId = soundId;
+        this.streamUrl = streamUrl == null ? "" : streamUrl;
         this.dimension = dimension;
         this.x = x;
         this.y = y;
@@ -44,6 +50,10 @@ public final class MusicZone {
         this.radius = radius;
         this.startEpochMs = startEpochMs;
         this.durationMs = durationMs;
+    }
+
+    public boolean isUrlStream() {
+        return !streamUrl.isEmpty();
     }
 
     public Vec3 center() {
@@ -70,7 +80,6 @@ public final class MusicZone {
         if (dist >= radius) {
             return 0.0F;
         }
-        // 0–20% rayon : plein ; 20–100% : décroissance linéaire
         float inner = radius * 0.20F;
         if (dist <= inner) {
             return 1.0F;
@@ -83,6 +92,7 @@ public final class MusicZone {
         buf.writeUUID(zoneId);
         buf.writeUtf(trackId, 64);
         buf.writeResourceLocation(soundId);
+        buf.writeUtf(streamUrl, 2048);
         buf.writeResourceLocation(dimension.location());
         buf.writeDouble(x);
         buf.writeDouble(y);
@@ -96,6 +106,7 @@ public final class MusicZone {
         UUID zoneId = buf.readUUID();
         String trackId = buf.readUtf(64);
         ResourceLocation soundId = buf.readResourceLocation();
+        String streamUrl = buf.readUtf(2048);
         ResourceLocation dimLoc = buf.readResourceLocation();
         ResourceKey<Level> dim = ResourceKey.create(Registry.DIMENSION_REGISTRY, dimLoc);
         double x = buf.readDouble();
@@ -104,6 +115,6 @@ public final class MusicZone {
         float radius = buf.readFloat();
         long start = buf.readLong();
         long duration = buf.readLong();
-        return new MusicZone(zoneId, trackId, soundId, dim, x, y, z, radius, start, duration);
+        return new MusicZone(zoneId, trackId, soundId, streamUrl, dim, x, y, z, radius, start, duration);
     }
 }

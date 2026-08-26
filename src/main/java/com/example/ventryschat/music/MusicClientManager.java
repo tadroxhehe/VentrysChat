@@ -48,6 +48,7 @@ public final class MusicClientManager {
         for (UUID id : List.copyOf(PLAYING.keySet())) {
             stopPlaying(id);
         }
+        UrlMusicPlayer.stopAll();
         for (MusicZone z : zones) {
             ZONES.put(z.zoneId, z);
         }
@@ -61,6 +62,7 @@ public final class MusicClientManager {
         for (UUID id : List.copyOf(PLAYING.keySet())) {
             stopPlaying(id);
         }
+        UrlMusicPlayer.stopAll();
     }
 
     public static void clientTick() {
@@ -86,6 +88,7 @@ public final class MusicClientManager {
                 PLAYING.remove(z.zoneId);
             }
         }
+        UrlMusicPlayer.tickAll();
     }
 
     private static void ensurePlaying(MusicZone zone) {
@@ -101,13 +104,13 @@ public final class MusicClientManager {
             stopPlaying(zone.zoneId);
             return;
         }
+        if (zone.isUrlStream()) {
+            UrlMusicPlayer.ensurePlaying(zone);
+            return;
+        }
         DynamicMusicSound existing = PLAYING.get(zone.zoneId);
         if (existing != null && !existing.isStopped()) {
             return;
-        }
-        if (MusicClientConfig.getVolumePercent() <= 0
-                && zone.distanceAttenuation(mc.player.getX(), mc.player.getY(), mc.player.getZ()) <= 0) {
-            // Toujours démarrer pour rester sync ; volume 0 possible via canStartSilent
         }
         DynamicMusicSound sound = new DynamicMusicSound(zone);
         PLAYING.put(zone.zoneId, sound);
@@ -124,6 +127,7 @@ public final class MusicClientManager {
             sound.markDone();
             Minecraft.getInstance().getSoundManager().stop(sound);
         }
+        UrlMusicPlayer.stop(zoneId);
     }
 
     /** Seek OpenAL pour synchroniser les entrants tardifs. */

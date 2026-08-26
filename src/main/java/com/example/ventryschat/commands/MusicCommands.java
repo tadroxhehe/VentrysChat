@@ -5,23 +5,30 @@ import com.example.ventryschat.music.MusicCatalog;
 import com.example.ventryschat.music.MusicServerManager;
 import com.example.ventryschat.music.MusicZone;
 import com.mojang.brigadier.CommandDispatcher;
-import com.mojang.brigadier.arguments.FloatArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
+import net.minecraft.network.chat.ClickEvent;
+import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.network.chat.Style;
 import net.minecraft.network.chat.TextComponent;
 import net.minecraft.server.level.ServerPlayer;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 public final class MusicCommands {
     public static final String PERM = "ventryspermissions.music";
 
-    private static final SuggestionProvider<CommandSourceStack> TRACK_SUGGESTIONS =
-        (ctx, builder) -> SharedSuggestionProvider.suggest(MusicCatalog.ids(), builder);
+    private static final SuggestionProvider<CommandSourceStack> PLAY_SUGGESTIONS = (ctx, builder) -> {
+        List<String> hints = new ArrayList<>(MusicCatalog.ids());
+        hints.add("https://");
+        return SharedSuggestionProvider.suggest(hints, builder);
+    };
 
     private MusicCommands() {
     }
@@ -31,14 +38,12 @@ public final class MusicCommands {
             Commands.literal("music")
                 .requires(source -> VentrysPermsBridge.staff(source, PERM))
                 .then(Commands.literal("play")
-                    .then(Commands.argument("track", StringArgumentType.word())
-                        .suggests(TRACK_SUGGESTIONS)
-                        .then(Commands.argument("radius", FloatArgumentType.floatArg(1.0F, 512.0F))
-                            .executes(ctx -> play(
-                                ctx.getSource(),
-                                StringArgumentType.getString(ctx, "track"),
-                                FloatArgumentType.getFloat(ctx, "radius")
-                            )))))
+                    .then(Commands.argument("args", StringArgumentType.greedyString())
+                        .suggests(PLAY_SUGGESTIONS)
+                        .executes(ctx -> playFlexible(
+                            ctx.getSource(),
+                            StringArgumentType.getString(ctx, "args")
+                        ))))
                 .then(Commands.literal("stop")
                     .executes(ctx -> stop(ctx.getSource())))
                 .then(Commands.literal("list")
@@ -50,19 +55,103 @@ public final class MusicCommands {
         );
     }
 
-    private static int play(CommandSourceStack source, String track, float radius) throws CommandSyntaxException {
+    /**
+     * Parse : {@code <piste|url> <rayon> [durée_secondes]}
+     * Ex. {@code bataille 50} · {@code https://cdn…/theme.ogg 80} · {@code https://…/a.ogg 50 180}
+     */
+    private static int playFlexible(CommandSourceStack source, String rawArgs) throws CommandSyntaxException {
         ServerPlayer player = source.getPlayerOrException();
-        Optional<MusicZone> zone = MusicServerManager.play(player, track, radius);
+        String trimmed = rawArgs.trim();
+        if (trimmed.isEmpty()) {
+            source.sendFailure(new TextComponent("Usage: /music play <piste|url> <rayon> [secondes]"));
+            return 0;
+        }
+
+        String[] tokens = trimmed.split("\\s+");
+        if (tokens.length < 2) {
+            source.sendFailure(new TextComponent("Indique un rayon. Ex: /music play bataille 50"));
+            return 0;
+        }
+
+        // Format: <piste|url> <rayon> [durée_secondes]
+        float radius;
+        Long durationMs = null;
+        int endExclusive;
+        String last = tokens[tokens.length - 1];
+        String secondLast = tokens.length >= 3 ? tokens[tokens.length - 2] : null;
+
+        if (tokens.length >= 3 && isPlainNumber(last) && isPlainNumber(secondLast)) {
+            try {
+                radius = Float.parseFloat(secondLast);
+                durationMs = Long.parseLong(last) * 1000L;
+                endExclusive = tokens.length - 2;
+            } catch (NumberFormatException e) {
+                source.sendFailure(new TextComponent("Rayon / durée invalides."));
+                return 0;
+            }
+        } else {
+            try {
+                radius = Float.parseFloat(last);
+                endExclusive = tokens.length - 1;
+            } catch (NumberFormatException e) {
+                source.sendFailure(new TextComponent("Rayon invalide: " + last));
+                return 0;
+            }
+        }
+
+        String trackOrUrl = join(tokens, 0, endExclusive);
+        if (trackOrUrl.isEmpty()) {
+            source.sendFailure(new TextComponent("Piste / URL manquante."));
+            return 0;
+        }
+
+        Optional<MusicZone> zone = MusicServerManager.play(player, trackOrUrl, radius, durationMs);
         if (zone.isEmpty()) {
-            source.sendFailure(new TextComponent("Piste inconnue: " + track + " — /music list"));
+            if (MusicServerManager.isHttpUrl(trackOrUrl)) {
+                source.sendFailure(new TextComponent("URL refusée (http/https uniquement)."));
+            } else {
+                source.sendFailure(new TextComponent("Piste inconnue: " + trackOrUrl + " — /music list"));
+            }
             return 0;
         }
         MusicZone z = zone.get();
+        String what = z.isUrlStream() ? z.streamUrl : z.trackId;
         source.sendSuccess(new TextComponent(
-            "§aMusique « " + track + " » lancée (rayon " + (int) z.radius + " blocs, "
-                + (z.durationMs / 1000) + " s)."
+            "§aMusique lancée §f" + shorten(what, 60)
+                + " §7(rayon " + (int) z.radius + ", " + (z.durationMs / 1000) + " s)."
         ), true);
         return 1;
+    }
+
+    private static boolean isPlainNumber(String s) {
+        if (s == null || s.isEmpty()) {
+            return false;
+        }
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            if (c < '0' || c > '9') {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static String join(String[] tokens, int from, int toExclusive) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = from; i < toExclusive; i++) {
+            if (i > from) {
+                sb.append(' ');
+            }
+            sb.append(tokens[i]);
+        }
+        return sb.toString();
+    }
+
+    private static String shorten(String s, int max) {
+        if (s.length() <= max) {
+            return s;
+        }
+        return s.substring(0, max - 1) + "…";
     }
 
     private static int stop(CommandSourceStack source) throws CommandSyntaxException {
@@ -74,15 +163,21 @@ public final class MusicCommands {
 
     private static int list(CommandSourceStack source) {
         if (MusicCatalog.ids().isEmpty()) {
-            source.sendSuccess(new TextComponent("§7Aucune piste dans le catalogue."), false);
+            source.sendSuccess(new TextComponent("§7Aucune piste packagée. Tu peux aussi:"), false);
+            source.sendSuccess(new TextComponent("§f/music play https://…/fichier.ogg 50"), false);
             return 0;
         }
-        source.sendSuccess(new TextComponent("§6Pistes disponibles :"), false);
+        source.sendSuccess(new TextComponent("§6Pistes packagées (clique pour rejouer) :"), false);
         for (MusicCatalog.Track t : MusicCatalog.all().values()) {
-            source.sendSuccess(new TextComponent(
-                " §7- §f" + t.id() + " §8(" + t.displayName() + ", " + (t.durationMs() / 1000) + " s)"
-            ), false);
+            String cmd = "/music play " + t.id() + " 50";
+            TextComponent line = new TextComponent(" §7- §a" + t.id() + " §8(" + t.displayName() + ")");
+            line.setStyle(Style.EMPTY
+                .withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, cmd))
+                .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+                    new TextComponent("Clic → " + cmd))));
+            source.sendSuccess(line, false);
         }
+        source.sendSuccess(new TextComponent("§7Ou lien direct: §f/music play <url.ogg> <rayon> [secondes]"), false);
         return MusicCatalog.ids().size();
     }
 
@@ -102,8 +197,9 @@ public final class MusicCommands {
         long now = System.currentTimeMillis();
         for (MusicZone z : zones) {
             long left = Math.max(0L, (z.endsAtEpochMs() - now) / 1000L);
+            String label = z.isUrlStream() ? shorten(z.streamUrl, 40) : z.trackId;
             source.sendSuccess(new TextComponent(
-                " §7- §f" + z.trackId + " §8r=" + (int) z.radius + " reste=" + left + "s id=" + z.zoneId.toString().substring(0, 8)
+                " §7- §f" + label + " §8r=" + (int) z.radius + " reste=" + left + "s"
             ), false);
         }
         return zones.size();
