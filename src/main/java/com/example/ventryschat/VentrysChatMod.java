@@ -22,8 +22,11 @@ import com.example.ventryschat.commands.PlayerDataResetCommands;
 import com.example.ventryschat.commands.StaffChatCommands;
 import com.example.ventryschat.commands.EcCommands;
 import com.example.ventryschat.commands.StaffUtilityCommands;
+import com.example.ventryschat.commands.MusicCommands;
 import com.example.ventryschat.commands.RollCommands;
 import com.example.ventryschat.util.ChatLog;
+import com.example.ventryschat.music.ModSounds;
+import com.example.ventryschat.music.MusicNetwork;
 
 @Mod("ventryschat")
 public class VentrysChatMod {
@@ -42,6 +45,7 @@ public class VentrysChatMod {
         ModItems.ITEMS.register(modEventBus);
         ModBlockEntities.BLOCK_ENTITY_TYPES.register(modEventBus);
         ModMenuTypes.MENU_TYPES.register(modEventBus);
+        ModSounds.SOUND_EVENTS.register(modEventBus);
         
         // Enregistrer pour les événements du serveur
         MinecraftForge.EVENT_BUS.register(this);
@@ -62,6 +66,7 @@ public class VentrysChatMod {
         // Initialiser le système de réseau
         event.enqueueWork(() -> {
             RPNetworkHandler.init();
+            MusicNetwork.init();
         });
         
         LOGGER.debug("VentrysChat setup réseau OK");
@@ -80,6 +85,7 @@ public class VentrysChatMod {
         NarrationBlockCommands.register(event.getDispatcher());
         PlayerDataResetCommands.register(event.getDispatcher());
         RollCommands.register(event.getDispatcher());
+        MusicCommands.register(event.getDispatcher());
         LOGGER.debug("Commandes VentrysChat enregistrées");
     }
 

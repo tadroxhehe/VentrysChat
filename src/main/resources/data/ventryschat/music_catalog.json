@@ -1,0 +1,19 @@
+{
+  "tracks": {
+    "bataille": {
+      "sound": "ventryschat:music.bataille",
+      "duration_ms": 30000,
+      "display_name": "Bataille"
+    },
+    "taverne": {
+      "sound": "ventryschat:music.taverne",
+      "duration_ms": 30000,
+      "display_name": "Taverne"
+    },
+    "royal": {
+      "sound": "ventryschat:music.royal",
+      "duration_ms": 30000,
+      "display_name": "Événement royal"
+    }
+  }
+}

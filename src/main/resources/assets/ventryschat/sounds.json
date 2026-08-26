@@ -1,0 +1,29 @@
+{
+  "music.bataille": {
+    "sounds": [
+      {
+        "name": "ventryschat:music/bataille",
+        "stream": true,
+        "volume": 1.0
+      }
+    ]
+  },
+  "music.taverne": {
+    "sounds": [
+      {
+        "name": "ventryschat:music/taverne",
+        "stream": true,
+        "volume": 1.0
+      }
+    ]
+  },
+  "music.royal": {
+    "sounds": [
+      {
+        "name": "ventryschat:music/royal",
+        "stream": true,
+        "volume": 1.0
+      }
+    ]
+  }
+}

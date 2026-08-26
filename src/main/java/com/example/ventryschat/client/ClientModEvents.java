@@ -21,6 +21,7 @@ public final class ClientModEvents {
             MenuScreens.register(ModMenuTypes.EC_HUB.get(), EcScreens::hub);
             MenuScreens.register(ModMenuTypes.EC_PANEL.get(), EcScreens::panel);
             MenuScreens.register(ModMenuTypes.EC_STORAGE.get(), EcScreens::storage);
+            com.example.ventryschat.music.MusicClientConfig.load();
         });
     }
 
