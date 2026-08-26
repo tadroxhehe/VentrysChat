@@ -66,7 +66,7 @@ public class VentrysChatMod {
         // Initialiser le système de réseau
         event.enqueueWork(() -> {
             RPNetworkHandler.init();
-            MusicNetwork.init();
+            // MusicNetwork.init(); // Musique dynamique désactivée (systeme juge non fiable)
         });
         
         LOGGER.debug("VentrysChat setup réseau OK");
@@ -85,7 +85,7 @@ public class VentrysChatMod {
         NarrationBlockCommands.register(event.getDispatcher());
         PlayerDataResetCommands.register(event.getDispatcher());
         RollCommands.register(event.getDispatcher());
-        MusicCommands.register(event.getDispatcher());
+        // MusicCommands.register(event.getDispatcher()); // Musique dynamique désactivée (systeme juge non fiable)
         LOGGER.debug("Commandes VentrysChat enregistrées");
     }
 

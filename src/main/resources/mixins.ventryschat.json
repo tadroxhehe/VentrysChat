@@ -9,8 +9,7 @@
   ],
   "client": [
     "CarriedPlayerBodyRotMixin",
-    "LivingEntityRendererAccessor",
-    "PauseScreenMixin"
+    "LivingEntityRendererAccessor"
   ],
   "server": [],
   "injectors": {
