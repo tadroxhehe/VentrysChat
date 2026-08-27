@@ -80,11 +80,11 @@ public class VentrysChatMod {
         AptitudesCommands.register(event.getDispatcher());
         StaffUtilityCommands.register(event.getDispatcher());
         EcCommands.register(event.getDispatcher());
-        StaffChatCommands.register(event.getDispatcher());
+        // StaffChatCommands.register(event.getDispatcher()); // /sc, /staffchat, /ticket desactives
         BlockWarpCommands.register(event.getDispatcher());
         NarrationBlockCommands.register(event.getDispatcher());
         PlayerDataResetCommands.register(event.getDispatcher());
-        RollCommands.register(event.getDispatcher());
+        // RollCommands.register(event.getDispatcher()); // /roll desactive
         // MusicCommands.register(event.getDispatcher()); // Musique dynamique désactivée (systeme juge non fiable)
         LOGGER.debug("Commandes VentrysChat enregistrées");
     }
