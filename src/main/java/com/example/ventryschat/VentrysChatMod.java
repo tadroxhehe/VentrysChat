@@ -77,13 +77,13 @@ public class VentrysChatMod {
     
     private void registerCommands(net.minecraftforge.event.RegisterCommandsEvent event) {
         RPCommands.register(event.getDispatcher());
-        AptitudesCommands.register(event.getDispatcher());
-        StaffUtilityCommands.register(event.getDispatcher());
-        EcCommands.register(event.getDispatcher());
+        // AptitudesCommands.register(event.getDispatcher()); // /aptitudes* desactivees
+        // StaffUtilityCommands.register(event.getDispatcher()); // /back, /invsee, /tpzone desactivees
+        // EcCommands.register(event.getDispatcher()); // /ec (create/transfer) desactive
         // StaffChatCommands.register(event.getDispatcher()); // /sc, /staffchat, /ticket desactives
-        BlockWarpCommands.register(event.getDispatcher());
-        NarrationBlockCommands.register(event.getDispatcher());
-        PlayerDataResetCommands.register(event.getDispatcher());
+        // BlockWarpCommands.register(event.getDispatcher()); // /blockwarp desactive
+        // NarrationBlockCommands.register(event.getDispatcher()); // /narrationblock, /nrblock desactivees
+        // PlayerDataResetCommands.register(event.getDispatcher()); // reset donnees joueur desactive
         // RollCommands.register(event.getDispatcher()); // /roll desactive
         // MusicCommands.register(event.getDispatcher()); // Musique dynamique désactivée (systeme juge non fiable)
         LOGGER.debug("Commandes VentrysChat enregistrées");
