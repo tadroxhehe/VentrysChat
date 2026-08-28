@@ -9,7 +9,10 @@
   ],
   "client": [
     "CarriedPlayerBodyRotMixin",
-    "LivingEntityRendererAccessor"
+    "LivingEntityRendererAccessor",
+    "MusicChatClickMixin$ScreenClicks",
+    "MusicChatClickMixin$LocalPlayerChat",
+    "PauseScreenMixin"
   ],
   "server": [],
   "injectors": {

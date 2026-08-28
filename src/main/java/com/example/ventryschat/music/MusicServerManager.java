@@ -35,7 +35,19 @@ public final class MusicServerManager {
     }
 
     public static void clear() {
-        ZONES.clear();
+        clear(null);
+    }
+
+    public static void clear(@Nullable net.minecraft.server.MinecraftServer server) {
+        if (server != null && !ZONES.isEmpty()) {
+            List<UUID> ids = new ArrayList<>(ZONES.keySet());
+            ZONES.clear();
+            for (UUID id : ids) {
+                MusicNetwork.broadcastRemove(server, id);
+            }
+        } else {
+            ZONES.clear();
+        }
         tickCounter = 0;
     }
 
@@ -155,8 +167,8 @@ public final class MusicServerManager {
                     || h.contains("bandcamp.com")
                     || h.contains("tiktok.com")
                     || h.contains("twitch.tv")) {
-                return "YouTube / plateformes de streaming non supportés. "
-                    + "Héberge le fichier (Catbox, CDN…) et utilise le lien direct .mp3 / .ogg / .wav.";
+                return "YouTube / Spotify / etc. non supportés. "
+                    + "Utilise un lien direct vers un fichier .mp3 / .ogg / .wav (ex. SoundHelix, Discord CDN).";
             }
             return null;
         } catch (Exception e) {

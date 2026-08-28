@@ -25,7 +25,7 @@ import java.util.function.Supplier;
 
 /** Canal dédié musique dynamique (séparé du RP). */
 public final class MusicNetwork {
-    private static final String PROTOCOL = "2";
+    private static final String PROTOCOL = "3";
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
         new ResourceLocation("ventryschat", "music"),
         () -> PROTOCOL,
@@ -56,6 +56,13 @@ public final class MusicNetwork {
             PlayUrlRequestPacket::decode,
             PlayUrlRequestPacket::handle
         );
+        CHANNEL.registerMessage(
+            id++,
+            ConsentPacket.class,
+            ConsentPacket::encode,
+            ConsentPacket::decode,
+            ConsentPacket::handle
+        );
     }
 
     public static void broadcastUpsert(MinecraftServer server, MusicZone zone) {
@@ -78,6 +85,10 @@ public final class MusicNetwork {
 
     public static void openUrlScreen(ServerPlayer player) {
         CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new OpenUrlScreenPacket());
+    }
+
+    public static void sendConsent(ServerPlayer player, UUID zoneId, boolean accept) {
+        CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new ConsentPacket(zoneId, accept));
     }
 
     /** Client → serveur : URL longue (Discord…). */
@@ -236,6 +247,35 @@ public final class MusicNetwork {
                 ), player.getUUID());
             });
             c.setPacketHandled(true);
+        }
+    }
+
+    /** Serveur → client : réponse Oui/Non à la proposition d'écoute. */
+    public static final class ConsentPacket {
+        private final UUID zoneId;
+        private final boolean accept;
+
+        public ConsentPacket(UUID zoneId, boolean accept) {
+            this.zoneId = zoneId;
+            this.accept = accept;
+        }
+
+        public void encode(FriendlyByteBuf buf) {
+            buf.writeUUID(zoneId);
+            buf.writeBoolean(accept);
+        }
+
+        public static ConsentPacket decode(FriendlyByteBuf buf) {
+            return new ConsentPacket(buf.readUUID(), buf.readBoolean());
+        }
+
+        public void handle(Supplier<NetworkEvent.Context> ctx) {
+            UUID id = zoneId;
+            boolean ok = accept;
+            ctx.get().enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () ->
+                MusicClientManager.applyConsent(id, ok)
+            ));
+            ctx.get().setPacketHandled(true);
         }
     }
 }

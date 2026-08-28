@@ -5,6 +5,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.mojang.logging.LogUtils;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraftforge.fml.loading.FMLPaths;
 import org.slf4j.Logger;
 
 import javax.annotation.Nullable;
@@ -36,7 +37,7 @@ public final class MusicCatalog {
         TRACKS.clear();
         loadFromStream(MusicCatalog.class.getResourceAsStream("/data/ventryschat/music_catalog.json"), "jar");
         try {
-            Path override = Path.of("config", "ventryschat-music.json");
+            Path override = FMLPaths.CONFIGDIR.get().resolve("ventryschat-music.json");
             if (Files.isRegularFile(override)) {
                 try (InputStream in = Files.newInputStream(override)) {
                     loadFromStream(in, override.toString());

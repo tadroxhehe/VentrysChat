@@ -56,6 +56,32 @@ public final class MusicCommands {
                 .then(Commands.literal("active")
                     .executes(ctx -> active(ctx.getSource())))
         );
+
+        // Opt-in joueur (clic chat) — pas de perm staff
+        dispatcher.register(
+            Commands.literal("musiclisten")
+                .requires(source -> source.getEntity() instanceof ServerPlayer)
+                .then(Commands.literal("accept")
+                    .then(Commands.argument("zone", StringArgumentType.string())
+                        .executes(ctx -> consent(
+                            ctx.getSource(),
+                            StringArgumentType.getString(ctx, "zone"),
+                            true
+                        ))))
+                .then(Commands.literal("decline")
+                    .then(Commands.argument("zone", StringArgumentType.string())
+                        .executes(ctx -> consent(
+                            ctx.getSource(),
+                            StringArgumentType.getString(ctx, "zone"),
+                            false
+                        ))))
+        );
+    }
+
+    private static int consent(CommandSourceStack source, String zoneRaw, boolean accept) {
+        // Le Oui/Non est géré 100% client (mixin). Ne pas renvoyer ConsentPacket
+        // → évite "Received invalid message ConsentPacket" (désync client/serveur).
+        return 1;
     }
 
     /**
