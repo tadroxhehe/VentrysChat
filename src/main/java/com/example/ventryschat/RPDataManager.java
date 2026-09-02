@@ -94,6 +94,10 @@ public class RPDataManager {
         public String lastName;
         public String birthDate;
         public String lorejob;
+        /** Région de naissance RP (id config, ex. dorne, north). */
+        public String birthRegion;
+        /** Religion RP (id config, ex. faith_of_the_seven). */
+        public String religion;
         public List<Prestige> prestiges;
         
         // Données d'aptitudes
@@ -111,6 +115,8 @@ public class RPDataManager {
             this.lastName = lastName != null ? lastName : "";
             this.birthDate = "";
             this.lorejob = "";
+            this.birthRegion = "";
+            this.religion = "";
             this.prestiges = new ArrayList<>();
             // Les aptitudes sont initialisées par défaut (valeurs à 0)
         }
@@ -120,6 +126,8 @@ public class RPDataManager {
             this.lastName = "";
             this.birthDate = "";
             this.lorejob = "";
+            this.birthRegion = "";
+            this.religion = "";
             this.prestiges = new ArrayList<>();
             // Les aptitudes sont initialisées par défaut (valeurs à 0)
         }
@@ -425,6 +433,76 @@ public class RPDataManager {
         }
         PlayerRPData data = playerData.get(playerUUID);
         return (data != null && data.lorejob != null) ? data.lorejob : "";
+    }
+
+    /**
+     * Définit la région de naissance RP d'un joueur (liste fermée {@link RpIdentityCatalog}).
+     * @return false si UUID null ou valeur hors liste
+     */
+    public static boolean setBirthRegion(UUID playerUUID, String birthRegion) {
+        if (playerUUID == null) {
+            LOGGER.warn("Tentative de définition de région de naissance avec UUID null");
+            return false;
+        }
+        try {
+            String normalized = RpIdentityCatalog.normalizeRegion(birthRegion);
+            if (normalized == null) {
+                LOGGER.warn("Région invalide refusée pour {}: {}", playerUUID, birthRegion);
+                return false;
+            }
+            PlayerRPData data = playerData.computeIfAbsent(playerUUID, k -> new PlayerRPData());
+            if (!normalized.equals(data.birthRegion == null ? "" : data.birthRegion)) {
+                data.birthRegion = normalized;
+                hasUnsavedChanges = true;
+            }
+            return true;
+        } catch (Exception e) {
+            LOGGER.error("Erreur setBirthRegion pour {} : {}", playerUUID, e.getMessage(), e);
+            return false;
+        }
+    }
+
+    public static String getBirthRegion(UUID playerUUID) {
+        if (playerUUID == null) {
+            return "";
+        }
+        PlayerRPData data = playerData.get(playerUUID);
+        return (data != null && data.birthRegion != null) ? data.birthRegion : "";
+    }
+
+    /**
+     * Définit la religion RP d'un joueur (liste fermée {@link RpIdentityCatalog}).
+     * @return false si UUID null ou valeur hors liste
+     */
+    public static boolean setReligion(UUID playerUUID, String religion) {
+        if (playerUUID == null) {
+            LOGGER.warn("Tentative de définition de religion avec UUID null");
+            return false;
+        }
+        try {
+            String normalized = RpIdentityCatalog.normalizeReligion(religion);
+            if (normalized == null) {
+                LOGGER.warn("Religion invalide refusée pour {}: {}", playerUUID, religion);
+                return false;
+            }
+            PlayerRPData data = playerData.computeIfAbsent(playerUUID, k -> new PlayerRPData());
+            if (!normalized.equals(data.religion == null ? "" : data.religion)) {
+                data.religion = normalized;
+                hasUnsavedChanges = true;
+            }
+            return true;
+        } catch (Exception e) {
+            LOGGER.error("Erreur setReligion pour {} : {}", playerUUID, e.getMessage(), e);
+            return false;
+        }
+    }
+
+    public static String getReligion(UUID playerUUID) {
+        if (playerUUID == null) {
+            return "";
+        }
+        PlayerRPData data = playerData.get(playerUUID);
+        return (data != null && data.religion != null) ? data.religion : "";
     }
     
     /**
